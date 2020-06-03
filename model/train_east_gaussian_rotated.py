@@ -254,7 +254,7 @@ class gaussian_projection(nn.Module):
 		b= (-2*sin*cos)/(4*var_x) + (2*sin*cos)/(4*var_y)
 		c= (sin*sin)/(2*var_x) + (cos*cos)/(2*var_y)
 		#
-		i= torch.linspace(0,height-1,height).cuda()
+		i= torch.linspace(0,height-1,height)#.cuda()
 		i=i.unsqueeze(1)
 		i= i.repeat(1,width)
 		j=i.T
@@ -283,7 +283,7 @@ class gaussian_projection(nn.Module):
 		for i in range(batch_size):
 			batch_center_map=center_map[i,0,:,:]
 			#print("seg threshold",self.segmentation_threshold)
-			batch_center_map=(batch_center_map>self.segmentation_threshold).float().cuda()
+			batch_center_map=(batch_center_map>self.segmentation_threshold).float()#.cuda()
 			#print(batch_center_map)
 			batch_variance_x= variance[i,0,:,:]
 			batch_threshold= threshold_map[i,0,:,:]
@@ -317,8 +317,9 @@ class gaussian_projection(nn.Module):
 			batch_gaussians_tensors=torch.max(batch_gaussians_tensors,0).values
 			#thresholding debugging
 			#print("type",type(batch_gaussians_tensors))
-			batch_gaussians_tensors=(batch_gaussians_tensors>=0.7).float().cuda()*batch_gaussians_tensors
-			#implementing the dynamic threshold for the segmentation
+			#batch_gaussians_tensors=(batch_gaussians_tensors>=0.7).float().cuda()*batch_gaussians_tensors
+			batch_gaussians_tensors=(batch_gaussians_tensors>=0.7).float()*batch_gaussians_tensors
+            #implementing the dynamic threshold for the segmentation
 			#batch_gaussians_tensors=(batch_gaussians_tensors>=threshold_map).float().cuda()*batch_gaussians_tensors
 			#batch_gaussians_tensors= F.relu(batch_gaussians_tensors)
 			batch_gaussians_tensors=batch_gaussians_tensors.unsqueeze(0)
@@ -375,9 +376,9 @@ class prediction_head(nn.Module):
 
 
 
-		changed_variance_map = torch.mean(torch.stack(changed_variance_map),axis=0)
-		if self.segmentation_attention:
-			score= x*(changed_variance_map.unsqueeze(1).repeat(1,x.shape[1],1,1))
+		#changed_variance_map = torch.mean(torch.stack(changed_variance_map),axis=0)
+		#if self.segmentation_attention:
+			#score= x*(changed_variance_map.unsqueeze(1).repeat(1,x.shape[1],1,1))
 		score= self.conv1(x)
 		score= self.sigmoid1(score)
 
@@ -422,14 +423,14 @@ class Segression(nn.Module):
 
 if __name__ == '__main__':
 
-	#device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+	device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 	#device= torch.device("cpu")
 
 	#m = Segression(segmentation_threshold=0.999, backbone='resnest').cuda()
-	m = Segression(segmentation_threshold=0.999, backbone='vgg').cuda()
+	m = Segression(segmentation_threshold=0.999, backbone='vgg').to(device)
 
-	x = torch.randn(2, 3, 512, 512).cuda()
-	score,contour_map, flag,variance= m(x)
+	x = torch.randn(1, 3, 512, 512).to(device)
+	score,contour_map,flag,variance= m(x)
 	print("done",score.size(),contour_map.size(),variance.size())
 
 
