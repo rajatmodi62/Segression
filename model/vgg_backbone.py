@@ -7,20 +7,21 @@ cfg = [64, 64, 'M', 128, 128, 'M', 256, 256, 256, 'M', 512, 512, 512, 'M', 512, 
 '''
 Making VGG Model Layers
 '''
-def make_layers(cfg, in_channels=3,batch_norm=False):
+def make_layers(cfg,in_channels=3, batch_norm=False):
 	layers = []
-	#in_channels = 3
+	# in_channels = 3
 	for v in cfg:
 		if v == 'M':
 			layers += [nn.MaxPool2d(kernel_size=2, stride=2)]
 		else:
-			conv2d = nn.Conv2d(3, v, kernel_size=3, padding=1)
+			conv2d = nn.Conv2d(in_channels, v, kernel_size=3, padding=1)
 			if batch_norm:
 				layers += [conv2d, nn.BatchNorm2d(v), nn.ReLU(inplace=True)]
 			else:
 				layers += [conv2d, nn.ReLU(inplace=True)]
 			in_channels = v
 	return nn.Sequential(*layers)
+
 
 class VGG(nn.Module):
 	def __init__(self, features):
@@ -56,6 +57,7 @@ class VGG(nn.Module):
 		x = self.classifier(x)
 		return x
 
+
 '''
 VGGEncoder
 Function: feature extraction
@@ -66,7 +68,7 @@ class VGGEncoder(nn.Module):
 	def __init__(self, in_channels=3,pretrained=True ):
 		super(VGGEncoder, self).__init__()
 		vgg16_bn = VGG(make_layers(cfg,in_channels, batch_norm=True))
-		if pretrained :
+		if pretrained and in_channels==3:
 			print("Loaded VGG16 Encoder's weights")
 			vgg16_bn.load_state_dict(torch.load('./pths/vgg16_bn-6c64b313.pth'))
 		self.features = vgg16_bn.features
@@ -149,11 +151,23 @@ Output: [B,out_channels,H,H]
 class VGGWrapper(nn.Module):
     def __init__(self,in_channels=3,out_channels=32,pretrained=True):
         super(VGGWrapper, self).__init__()
-
-        #initialize encoder
-        self.encoder= VGGEncoder(in_channels=in_channels,\
+        self.in_channels=in_channels
+        self.out_channels=out_channels
+        self.encoder= VGGEncoder(in_channels=self.in_channels,\
                                  pretrained=pretrained)
+        self.decoder= VGGDecoder(out_channels=self.out_channels)
+
+    def forward(self, x):
+         # assert x.size()[1]==self.in_channels,\
+         #        "Initialized in_channel & Input Tensor's in_channel must be same"
+         x= self.encoder(x)
+         x= self.decoder(x)
+
+         return x
+
 if __name__ == '__main__':
         print("main")
-        vgg=VGGWrapper()
-        print("done")
+        vgg=VGGWrapper(in_channels=3)
+        x= torch.randn(2,3,256,512)
+        output=vgg(x)
+        print("done",output.shape)
