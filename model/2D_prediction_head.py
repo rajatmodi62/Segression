@@ -153,8 +153,8 @@ class PredictionHead2D(nn.Module):
             #batch_pooled_gaussians=torch.stack(batch_pooled_gaussians,0)
             batch_pooled_gaussians=torch.max(batch_pooled_gaussians,0).values
             #print("batch pooled gaussians",batch_pooled_gaussians.shape)
-            plt.imshow(batch_pooled_gaussians)
-            plt.show()
+            # plt.imshow(batch_pooled_gaussians)
+            # plt.show()
             #Gaussian thresholding
             batch_pooled_gaussians=(batch_pooled_gaussians>=self.gaussian_segmentation_threshold).float()*batch_pooled_gaussians
 
