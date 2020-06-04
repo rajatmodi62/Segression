@@ -17,7 +17,7 @@ Parameters:
 Gaussian Kernel containing a single variance.
 
 Returns:
-[1,1,H,W]  gaussian map of 0/1's.
+[1,1,H,W]  gaussian map of [0,1]
 
 '''
 class PredictionHead3D(nn.Module):
@@ -125,8 +125,8 @@ class PredictionHead3D(nn.Module):
             batch_segmentation_map= (batch_segmentation_map>self.segmentation_map_threshold).float()
 
             #extract parameters for gaussians
-            batch_variance_height= variance_map[i,0,:,:]
-            batch_variance_width= variance_map[i,1,:,:]
+            batch_variance_height= F.relu(variance_map[i,0,:,:])
+            batch_variance_width= F.relu(variance_map[i,1,:,:])
             # batch_theta_map= 3.14*variance_map[i,2,:,:]
 
             batch_theta_map= 3.14*F.sigmoid(variance_map[i,2,:,:])

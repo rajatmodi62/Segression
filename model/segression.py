@@ -119,9 +119,14 @@ class Segression(nn.Module):
         center_line_segmentation= self.segmentation_head(x)
 
         # if no external map given, use center_line_segmentation to compute gaussians.
+
         if segmentation_map is None:
+
+            #call a code to perform skeletonization on center_line_segmentation (Future Edit)
+
             gaussian_segmentation= self.prediction_head(variance_map= variance,\
                                                         segmentation_map= center_line_segmentation)
+            #skeletonization map
         else:
             #use externally provided map for training
             gaussian_segmentation= self.prediction_head(variance_map=variance,\

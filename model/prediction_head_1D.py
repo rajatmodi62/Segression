@@ -17,7 +17,7 @@ Parameters:
 Gaussian Kernel containing a single variance.
 
 Returns:
-[1,1,H,W]  gaussian map of 0/1's.
+[1,1,H,W]  gaussian map of [0,1]
 
 '''
 class PredictionHead1D(nn.Module):
@@ -102,7 +102,7 @@ class PredictionHead1D(nn.Module):
             batch_segmentation_map= (batch_segmentation_map>self.segmentation_map_threshold).float()
 
             #extract parameters for gaussians
-            batch_variance= variance_map[i,0,:,:]
+            batch_variance= F.relu(variance_map[i,0,:,:])
 
             #list where the gaussians of current batch are pooled
             batch_pooled_gaussians= []
