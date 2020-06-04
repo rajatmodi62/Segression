@@ -163,7 +163,7 @@ class extractor_resnest(nn.Module):
 	                   avd=True, avd_first=False)
 		if pretrained:
 			model.load_state_dict(torch.hub.load_state_dict_from_url(
-	            resnest_model_urls['resnest50'], progress=True, check_hash=True))
+	            resnest_model_urls['resnest50'], progress=True))
 		self.features = model
 
 	def forward(self, x):
@@ -427,11 +427,11 @@ if __name__ == '__main__':
 	#device= torch.device("cpu")
 
 	#m = Segression(segmentation_threshold=0.999, backbone='resnest').cuda()
-	m = Segression(segmentation_threshold=0.999, backbone='vgg').to(device)
+	m = Segression(segmentation_threshold=0.999, backbone='resnest').to(device)
 
-	x = torch.randn(1, 3, 512, 512).to(device)
-	score,contour_map,flag,variance= m(x)
-	print("done",score.size(),contour_map.size(),variance.size())
+	# x = torch.randn(1, 3, 512, 512).to(device)
+	# score,contour_map,flag,variance= m(x)
+	# print("done",score.size(),contour_map.size(),variance.size())
 
 
 
