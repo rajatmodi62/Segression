@@ -12,6 +12,7 @@ from model.prediction_head_1D import PredictionHead1D
 from model.prediction_head_2D import PredictionHead2D
 from model.prediction_head_3D import PredictionHead3D
 
+device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
 '''
 Segression Block
@@ -43,13 +44,12 @@ class Segression(nn.Module):
         self.epsilon= epsilon
         self.in_channels= in_channels
         self.out_channels= out_channels
-        ########################################################################
         #initialize backbone
-        if backbone is 'VGG':
+        if backbone =='VGG':
             self.backbone= VGGWrapper(in_channels=in_channels,\
                                       out_channels=out_channels,\
                                       pretrained= pretrained)
-        elif backbone is "ResNest":
+        elif backbone == "ResNest":
             self.backbone= ResNestWrapper(in_channels=in_channels,\
                                       out_channels=out_channels,\
                                       pretrained= pretrained)
@@ -65,6 +65,7 @@ class Segression(nn.Module):
 
         ########################################################################
         #initialize prediction heads
+        ########################################################################
         #Note: in_channel=out_channel since it's plugged in front of backbone.
         if segression_dimension==1:
             print("prediction head 1D")
@@ -132,7 +133,7 @@ class Segression(nn.Module):
             gaussian_segmentation= self.prediction_head(variance_map=variance,\
                                                         segmentation_map=segmentation_map)
         #print("backbone pass",x.size())
-        return gaussian_segmentation, center_line_segmentation
+        return gaussian_segmentation, center_line_segmentation, variance
 if __name__ == '__main__':
     segression= Segression(backbone= "ResNest",segression_dimension=1)
     x= torch.randn(2,3,256,512)

@@ -20,6 +20,8 @@ Returns:
 [1,1,H,W]  gaussian map of [0,1]
 
 '''
+device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+
 class PredictionHead3D(nn.Module):
 
     def __init__(self,\
@@ -32,7 +34,7 @@ class PredictionHead3D(nn.Module):
         self.gaussian_segmentation_threshold= gaussian_segmentation_threshold
         #Pertubation to prevent gaussian from exploding
         self.epsilon= epsilon
-
+        #self.epsilon=0
     def create_gaussian_3D(self,\
                            variance_height,\
                            variance_width,\
@@ -48,14 +50,23 @@ class PredictionHead3D(nn.Module):
         cos = torch.cos(theta)
         variance_height = torch.pow(variance_height,2)
         variance_width = torch.pow(variance_width,2)
-        a= (cos*cos)/(2*variance_height+self.epsilon) + (sin*sin)/(2*variance_width+self.epsilon)
-        b= (-2*sin*cos)/(4*variance_height+self.epsilon) + (2*sin*cos)/(4*variance_width+self.epsilon)
-        c= (sin*sin)/(2*variance_height+self.epsilon) + (cos*cos)/(2*variance_width+self.epsilon)
+        # a= (cos*cos)/(2*variance_height+self.epsilon) + (sin*sin)/(2*variance_width+self.epsilon)
+        # b= (-2*sin*cos)/(4*variance_height+self.epsilon) + (2*sin*cos)/(4*variance_width+self.epsilon)
+        # c= (sin*sin)/(2*variance_height+self.epsilon) + (cos*cos)/(2*variance_width+self.epsilon)
+        a= (cos*cos)/(2*variance_height) + (sin*sin)/(2*variance_width)
+        b= (-2*sin*cos)/(4*variance_height) + (2*sin*cos)/(4*variance_width)
+        c= (sin*sin)/(2*variance_height) + (cos*cos)/(2*variance_width)
+        # print("==========>a",torch.min(a),torch.max(a))
+        # print("=========>b",torch.min(b),torch.max(b))
+        # print('variance height',torch.min(variance_height),torch.max(variance_height))
+        # print('variance height',torch.min(variance_height),torch.max(variance_width))
+        # print('c',torch.max(sin))
+        # print('d', torch.max(cos))
 
         ###############################################
 
         #i: indices along height
-        i= torch.linspace(0,height-1,height)
+        i= torch.linspace(0,height-1,height).to(device)
         i=i.unsqueeze(1)
         i= i.repeat(1,width) # HxW
         # addede code section
@@ -66,7 +77,7 @@ class PredictionHead3D(nn.Module):
         ###############################################
 
         #j: indices along width
-        j= torch.linspace(0,width-1,width)
+        j= torch.linspace(0,width-1,width).to(device)
         j=j.unsqueeze(1)
         j= j.repeat(1,height).T # HxW
 
@@ -79,10 +90,11 @@ class PredictionHead3D(nn.Module):
 
 
         #the x & y around which gaussian is centered
-        A= torch.pow(i-x_coordinate+self.epsilon,2)
-        B= 2*(i-x_coordinate+self.epsilon)*(j-y_coordinate+self.epsilon)
-        C= torch.pow(j-y_coordinate+self.epsilon,2)
+        A= torch.pow(i-x_coordinate,2)
+        B= 2*(i-x_coordinate)*(j-y_coordinate)
+        C= torch.pow(j-y_coordinate,2)
         gaussian= torch.exp(-(a*A+b*B+c*C)+self.epsilon)#.cuda()
+        #print('max values of gaussian', torch.max(gaussian))
 
 
         # #1D Gaussian
@@ -94,6 +106,7 @@ class PredictionHead3D(nn.Module):
         #visualization of created gaussian
         # plt.imshow(gaussian.squeeze())
         # plt.show()
+        del a,b,c,A,B,C,i,j
 
         return gaussian
 
@@ -125,8 +138,9 @@ class PredictionHead3D(nn.Module):
             batch_segmentation_map= (batch_segmentation_map>self.segmentation_map_threshold).float()
 
             #extract parameters for gaussians
-            batch_variance_height= F.relu(variance_map[i,0,:,:])
-            batch_variance_width= F.relu(variance_map[i,1,:,:])
+            # Added 1 perturbation to prevent explosion
+            batch_variance_height= F.relu(variance_map[i,0,:,:])+1
+            batch_variance_width= F.relu(variance_map[i,1,:,:])+ 1
             # batch_theta_map= 3.14*variance_map[i,2,:,:]
 
             batch_theta_map= 3.14*F.sigmoid(variance_map[i,2,:,:])
@@ -181,7 +195,7 @@ class PredictionHead3D(nn.Module):
             #[1,H,W]
             batch_pooled_gaussians=batch_pooled_gaussians.unsqueeze(0)
             final_stacked_gaussian_map.append(batch_pooled_gaussians)
-
+            del batch_pooled_gaussians
         #Stack Individual outputs along Common Batch dimension
         final_stacked_gaussian_map= torch.stack(final_stacked_gaussian_map,0)
         #print("shape of final map",final_stacked_gaussian_map.shape)
@@ -190,7 +204,6 @@ class PredictionHead3D(nn.Module):
 
 if __name__ == '__main__':
 
-    device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     prediction_head=  PredictionHead3D()
     #construct synthetic input
 
@@ -201,8 +214,8 @@ if __name__ == '__main__':
     # segmentation_map[:,0,100,100]=1
 
     variance_map= torch.zeros((2,3,128,256))
-    variance_map[:,0,10,10]=100
-    variance_map[:,1,10,10]=27
+    variance_map[:,0,10,10]=0
+    variance_map[:,1,10,10]=0
     variance_map[:,2,10,10]=0
 
     # variance_map[:,0,50,50]=100
@@ -232,4 +245,4 @@ if __name__ == '__main__':
     # variance_map[:,0,63,63]=0
     # output=prediction_head(variance_map,\
     #                 segmentation_map)
-    print("unique",torch.unique(output))
+    #print("unique",torch.unique(output))

@@ -3,6 +3,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 import matplotlib.pyplot as plt
 
+device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
 '''
 Prediction Head takes a segmentation map as input.
@@ -41,7 +42,7 @@ class PredictionHead2D(nn.Module):
                            height,\
                            width, points):
        #i: indices along height
-       i= torch.linspace(0,height-1,height)
+       i= torch.linspace(0,height-1,height).to(device)
        i=i.unsqueeze(1)
        i= i.repeat(1,width) # HxW
        # addede code section
@@ -52,7 +53,7 @@ class PredictionHead2D(nn.Module):
        ###############################################
 
        #j: indices along width
-       j= torch.linspace(0,width-1,width)
+       j= torch.linspace(0,width-1,width).to(device)
        j=j.unsqueeze(1)
        j= j.repeat(1,height).T # HxW
 
@@ -103,8 +104,8 @@ class PredictionHead2D(nn.Module):
             batch_segmentation_map= (batch_segmentation_map>self.segmentation_map_threshold).float()
 
             #extract parameters for gaussians
-            batch_variance_height= F.relu(variance_map[i,0,:,:])
-            batch_variance_width= F.relu(variance_map[i,1,:,:])
+            batch_variance_height= F.relu(variance_map[i,0,:,:])+1
+            batch_variance_width= F.relu(variance_map[i,1,:,:])+1
 
             #list where the gaussians of current batch are pooled
             batch_pooled_gaussians= []
