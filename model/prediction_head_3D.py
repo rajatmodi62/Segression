@@ -17,7 +17,7 @@ Parameters:
 Gaussian Kernel containing a single variance.
 
 Returns:
-[1,1,H,W]  gaussian map of 0/1's.
+[1,1,H,W]  gaussian map of [0,1]
 
 '''
 class PredictionHead3D(nn.Module):
@@ -125,8 +125,8 @@ class PredictionHead3D(nn.Module):
             batch_segmentation_map= (batch_segmentation_map>self.segmentation_map_threshold).float()
 
             #extract parameters for gaussians
-            batch_variance_height= variance_map[i,0,:,:]
-            batch_variance_width= variance_map[i,1,:,:]
+            batch_variance_height= F.relu(variance_map[i,0,:,:])
+            batch_variance_width= F.relu(variance_map[i,1,:,:])
             # batch_theta_map= 3.14*variance_map[i,2,:,:]
 
             batch_theta_map= 3.14*F.sigmoid(variance_map[i,2,:,:])
@@ -172,8 +172,8 @@ class PredictionHead3D(nn.Module):
             #batch_pooled_gaussians=torch.stack(batch_pooled_gaussians,0)
             batch_pooled_gaussians=torch.max(batch_pooled_gaussians,0).values
             #print("batch pooled gaussians",batch_pooled_gaussians.shape)
-            plt.imshow(batch_pooled_gaussians)
-            plt.show()
+            # plt.imshow(batch_pooled_gaussians)
+            # plt.show()
             #Gaussian thresholding
             batch_pooled_gaussians=(batch_pooled_gaussians>=self.gaussian_segmentation_threshold).float()*batch_pooled_gaussians
 
@@ -197,21 +197,21 @@ if __name__ == '__main__':
     #segmentation present, variance present
     segmentation_map= torch.zeros((2,1,128,256))
     segmentation_map[:,0,10,10]=1
-    segmentation_map[:,0,50,50]=1
-    segmentation_map[:,0,100,100]=1
+    # segmentation_map[:,0,50,50]=1
+    # segmentation_map[:,0,100,100]=1
 
     variance_map= torch.zeros((2,3,128,256))
     variance_map[:,0,10,10]=100
     variance_map[:,1,10,10]=27
     variance_map[:,2,10,10]=0
 
-    variance_map[:,0,50,50]=100
-    variance_map[:,1,50,50]=27
-    variance_map[:,2,10,10]=0
-
-    variance_map[:,0,100,100]=100
-    variance_map[:,1,100,100]=27
-    variance_map[:,2,10,10]=0
+    # variance_map[:,0,50,50]=100
+    # variance_map[:,1,50,50]=27
+    # variance_map[:,2,10,10]=0
+    #
+    # variance_map[:,0,100,100]=100
+    # variance_map[:,1,100,100]=27
+    # variance_map[:,2,10,10]=0
 
     output=prediction_head(variance_map,\
                     segmentation_map)

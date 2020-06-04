@@ -17,7 +17,7 @@ Parameters:
 Gaussian Kernel containing a single variance.
 
 Returns:
-[1,1,H,W]  gaussian map of 0/1's.
+[1,1,H,W]  gaussian map of [0,1]
 
 '''
 class PredictionHead1D(nn.Module):
@@ -67,7 +67,7 @@ class PredictionHead1D(nn.Module):
        B= torch.pow(j-y_coordinate,2)/(2*torch.pow(variance+self.epsilon,2))
        gaussian= torch.exp(-(A+B)+ self.epsilon)
 
-       print("gaussian shape",gaussian.shape)
+       #print("gaussian shape",gaussian.shape)
        #visualization of created gaussian
        # plt.imshow(gaussian.squeeze())
        # plt.show()
@@ -102,7 +102,7 @@ class PredictionHead1D(nn.Module):
             batch_segmentation_map= (batch_segmentation_map>self.segmentation_map_threshold).float()
 
             #extract parameters for gaussians
-            batch_variance= variance_map[i,0,:,:]
+            batch_variance= F.relu(variance_map[i,0,:,:])
 
             #list where the gaussians of current batch are pooled
             batch_pooled_gaussians= []
@@ -110,7 +110,7 @@ class PredictionHead1D(nn.Module):
 
             #gaussians will be drawn on non-zero variances return Px2 tensor.
             batch_non_zero_variances= torch.nonzero(batch_segmentation_map)
-            print("non zero size",batch_non_zero_variances.shape)
+            #print("non zero size",batch_non_zero_variances.shape)
             batch_no_of_non_zero_variances= batch_non_zero_variances.size()[0]
 
 
@@ -150,8 +150,8 @@ class PredictionHead1D(nn.Module):
             #batch_pooled_gaussians=torch.stack(batch_pooled_gaussians,0)
             batch_pooled_gaussians=torch.max(batch_pooled_gaussians,0).values
             #print("batch pooled gaussians",batch_pooled_gaussians.shape)
-            plt.imshow(batch_pooled_gaussians)
-            plt.show()
+            # plt.imshow(batch_pooled_gaussians)
+            # plt.show()
             #Gaussian thresholding
             batch_pooled_gaussians=(batch_pooled_gaussians>=self.gaussian_segmentation_threshold).float()*batch_pooled_gaussians
 
