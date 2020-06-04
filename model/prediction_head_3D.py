@@ -3,6 +3,19 @@ import torch.nn as nn
 import torch.nn.functional as F
 import matplotlib.pyplot as plt
 
+def get_slice(total_indices,size_of_slice):
+  slice=[]
+  if total_indices%size_of_slice==0:
+    no_of_slices= int(total_indices//size_of_slice)
+    for idx in range(no_of_slices):
+      slice.append((idx*size_of_slice,(idx+1)*size_of_slice))
+  else:
+    no_of_slices= int(total_indices/size_of_slice) + 1
+    for idx in range(no_of_slices-1):
+      slice.append((idx*size_of_slice,(idx+1)*size_of_slice))
+    slice.append(((no_of_slices-1)*size_of_slice,total_indices))
+
+  return slice
 
 '''
 Prediction Head takes a segmentation map as input.
@@ -94,6 +107,7 @@ class PredictionHead3D(nn.Module):
         B= 2*(i-x_coordinate)*(j-y_coordinate)
         C= torch.pow(j-y_coordinate,2)
         gaussian= torch.exp(-(a*A+b*B+c*C)+self.epsilon)#.cuda()
+
         #print('max values of gaussian', torch.max(gaussian))
 
 
@@ -107,13 +121,14 @@ class PredictionHead3D(nn.Module):
         # plt.imshow(gaussian.squeeze())
         # plt.show()
         del a,b,c,A,B,C,i,j
+        return torch.max(gaussian,0).values
 
-        return gaussian
+        #return gaussian
 
 
     def forward(self,\
                 variance_map=None,\
-                segmentation_map= None):
+                segmentation_map= None,size_of_slice=200):
 
 
         assert variance_map is not None,\
@@ -165,25 +180,48 @@ class PredictionHead3D(nn.Module):
             variance_width =   batch_variance_width[x_coordinate, y_coordinate] #P
             theta_map =   batch_theta_map[x_coordinate, y_coordinate] #P
 
-            #print("type ",x_coordinate.dtype,y_coordinate.dtype,variance.dtype)
-            x_coordinate = x_coordinate.view(batch_no_of_non_zero_variances,1,1).repeat(1,height,width)
-            y_coordinate = y_coordinate.view(batch_no_of_non_zero_variances,1,1).repeat(1,height,width)
-            variance_height = variance_height.view(batch_no_of_non_zero_variances,1,1).repeat(1,height,width)
-            variance_width = variance_width.view(batch_no_of_non_zero_variances,1,1).repeat(1,height,width)
-            theta_map = theta_map.view(batch_no_of_non_zero_variances,1,1).repeat(1,height,width)
+            slice_list = get_slice(batch_no_of_non_zero_variances,size_of_slice)
+            sliced_gaussian_map=[]
+            for index in range(len(slice_list)):
+                slice = slice_list[index]
+                slice_length=slice[1]-slice[0]
+                #print(slice_length, slice_list[index], x_coordinate.shape)
+                #print("type ",x_coordinate.dtype,y_coordinate.dtype,variance.dtype)
+                X_Coordinate = x_coordinate[slice[0]:slice[1]].view(slice_length,1,1).repeat(1,height,width)
+                Y_Coordinate = y_coordinate[slice[0]:slice[1]].view(slice_length,1,1).repeat(1,height,width)
+                Variance_Height = variance_height[slice[0]:slice[1]].view(slice_length,1,1).repeat(1,height,width)
+                Variance_Width = variance_width[slice[0]:slice[1]].view(slice_length,1,1).repeat(1,height,width)
+                Theta_Map = theta_map[slice[0]:slice[1]].view(slice_length,1,1).repeat(1,height,width)
 
+                batch_pooled_gaussians= self.create_gaussian_3D(Variance_Height,\
+                                        Variance_Width,\
+                                        Theta_Map,\
+                                        X_Coordinate.float(),\
+                                        Y_Coordinate.float(),\
+                                        height,\
+                                        width, slice_length)
+                sliced_gaussian_map.append(batch_pooled_gaussians)
+                del batch_pooled_gaussians
 
-            batch_pooled_gaussians= self.create_gaussian_3D(variance_height,\
-                                    variance_width,\
-                                    theta_map,\
-                                    x_coordinate.float(),\
-                                    y_coordinate.float(),\
-                                    height,\
-                                    width, batch_no_of_non_zero_variances)
+            # #print("type ",x_coordinate.dtype,y_coordinate.dtype,variance.dtype)
+            # x_coordinate = x_coordinate.view(batch_no_of_non_zero_variances,1,1).repeat(1,height,width)
+            # y_coordinate = y_coordinate.view(batch_no_of_non_zero_variances,1,1).repeat(1,height,width)
+            # variance_height = variance_height.view(batch_no_of_non_zero_variances,1,1).repeat(1,height,width)
+            # variance_width = variance_width.view(batch_no_of_non_zero_variances,1,1).repeat(1,height,width)
+            # theta_map = theta_map.view(batch_no_of_non_zero_variances,1,1).repeat(1,height,width)
+            #
+            #
+            # batch_pooled_gaussians= self.create_gaussian_3D(variance_height,\
+            #                         variance_width,\
+            #                         theta_map,\
+            #                         x_coordinate.float(),\
+            #                         y_coordinate.float(),\
+            #                         height,\
+            #                         width, batch_no_of_non_zero_variances)
 
             #All gaussians are drawn now.
             #Take max along channel
-            #batch_pooled_gaussians=torch.stack(batch_pooled_gaussians,0)
+            batch_pooled_gaussians=torch.stack(sliced_gaussian_map,0)
             batch_pooled_gaussians=torch.max(batch_pooled_gaussians,0).values
             #print("batch pooled gaussians",batch_pooled_gaussians.shape)
             # plt.imshow(batch_pooled_gaussians)

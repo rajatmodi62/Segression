@@ -267,7 +267,7 @@ def main():
         if max_value<torch.sum(center_line_map):
             max_value = torch.sum(center_line_map)
         #max_value=torch.max(max_value, torch.sum(center_line_map))
-        print('number of pixels', max_value)
+        #print('number of pixels', max_value,torch.sum(center_line_map))
         #print('unique elements in input center_line',torch.unique(center_line_map))
 
         contour_map,score_map, variance_map=model(img, segmentation_map=center_line_map)
@@ -306,6 +306,7 @@ def main():
         loss_seg= score_map_loss_tolerance*loss_score_map
         #print('loss 1', loss_seg)
         # extract non zero planes contour maps and corresponding ground truth
+        loss_contour_map= -1000
         if flag:#zero_indices.shape[0]!=center_line_map.shape[0]:
             #print('perform this section ...yyyyy')
             #print(contour_map.shape, train_mask.shape, compressed_ground_truth.shape)
@@ -314,7 +315,7 @@ def main():
             compressed_ground_truth=compressed_ground_truth[zero_indices,...]
             loss_contour_map = loss_dice(train_mask,contour_map,compressed_ground_truth)
             #print('loss 2', loss_contour_map)
-            loss_seg = contour_loss_tolerance*loss_contour_map
+            loss_seg = loss_seg+contour_loss_tolerance*loss_contour_map
 
         if not torch.isnan(loss_seg):
             loss_seg.backward()
@@ -341,10 +342,7 @@ def main():
                     pass
             print("len of tensors",len)
             print('iter = {0:8d}/{1:8d}, loss_seg = {2:.3f}, loss_gaussian_branch = {3:.3f}, loss_segmentation_branch = {4:.3f}'.format(i_iter, args.num_steps, loss_seg,loss_contour_map,loss_score_map))
-        del score_map,contour_map,variance_map, image, compressed_ground_truth,center_line_map,train_mask, tr_mask, tcl_mask, radius_map, sin_map, cos_map
-        del loss_seg,loss_score_map
-        if not flag:
-            del loss_contour_map
+
 
         if i_iter >= args.num_steps-1:
             print ('save model ...')
@@ -354,6 +352,10 @@ def main():
             print ('taking snapshot ...')
             torch.save(model.state_dict(),osp.join(model_save_dir, args.dataset+'_3d_rotated_gaussian_without_attention_'+str(i_iter)+'.pth'))
 
+        del score_map,contour_map,variance_map, image, compressed_ground_truth,center_line_map,train_mask, tr_mask, tcl_mask, radius_map, sin_map, cos_map
+        del loss_seg,loss_score_map
+        if  flag:
+            del loss_contour_map
     end = timeit.default_timer()
     print (end-start,'seconds')
 
