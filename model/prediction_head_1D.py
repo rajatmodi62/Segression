@@ -67,7 +67,7 @@ class PredictionHead1D(nn.Module):
        B= torch.pow(j-y_coordinate,2)/(2*torch.pow(variance+self.epsilon,2))
        gaussian= torch.exp(-(A+B)+ self.epsilon)
 
-       print("gaussian shape",gaussian.shape)
+       #print("gaussian shape",gaussian.shape)
        #visualization of created gaussian
        # plt.imshow(gaussian.squeeze())
        # plt.show()
@@ -110,7 +110,7 @@ class PredictionHead1D(nn.Module):
 
             #gaussians will be drawn on non-zero variances return Px2 tensor.
             batch_non_zero_variances= torch.nonzero(batch_segmentation_map)
-            print("non zero size",batch_non_zero_variances.shape)
+            #print("non zero size",batch_non_zero_variances.shape)
             batch_no_of_non_zero_variances= batch_non_zero_variances.size()[0]
 
 
