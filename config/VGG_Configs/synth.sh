@@ -4,7 +4,7 @@ INPUT_SIZE=512
 LEARNING_RATE=1e-4
 NUM_STEPS=200000
 POWER=0.9
-SAVE_PRED_EVERY=10
+SAVE_PRED_EVERY=100
 SNAPSHOT_DIR='./snapshots/'
 DATASET='SynthText'
 CHECKPOINT_NO=0
@@ -26,4 +26,4 @@ CUDA_VISIBLE_DEVICES=$CUDA_DEVICE python train_modular.py --batch-size=$BATCH_SI
             --iteration-to-start-from=$ITERATION_TO_START_FROM \
             --update-visdom-iter=$UPDATE_VISDOM_ITER\
             --backbone=$BACKBONE\
-            #  --visualization
+              --visualization

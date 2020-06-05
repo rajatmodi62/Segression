@@ -3,11 +3,12 @@ A Gaussian Text Detector for Arbitrary Shapes
 
 
 # To-Do list
+- [ ] Convert 1D, 2D to non vectorized using non vectorized
 - [ ] Modularize the testing code for square images.
-- [ ] Test all dataset to fix the evaluation metrics. 
+- [ ] Test all dataset to fix the evaluation metrics.
 - [ ] Pre-training of the VGG, ResNet50 and ResNest50.
 - [ ] Fine tuned on datasets (TotalText, CTW1500, MSRA-TD500, ICDAR 2015)
-- [ ] Abilation for 1d, 2d and 3d gaussian projection. 
+- [ ] Abilation for 1d, 2d and 3d gaussian projection.
 
 # Experimentaion Details
 
@@ -28,7 +29,7 @@ Augmentation used:
 
 # Pre-trained models
 
-| Backbone    |  Dataset     |    Download Link   | 
+| Backbone    |  Dataset     |    Download Link   |
 |-------------|--------------|--------------------|
 |VGG-16       | Synthetic    |                    |
 |VGG-16       | Total Text   |                    |
@@ -52,7 +53,7 @@ Augmentation used:
 $ bash ./config/BACKBONE/DATASET.sh
 ```
 BACKBONE : VGG_Configs, ResNest_Configs
-DATASET  : Synth,total_text,ctw1500,msrtd-500,icdar_2015 
+DATASET  : Synth,total_text,ctw1500,msrtd-500,icdar_2015
 
 
 # Testing
@@ -61,14 +62,14 @@ For multi-scale testing on square wrapped images
 ```
 $ python multi_scale_testing_nonmodular_square.py
 ```
-For multi-scale testing on rectangular images 
+For multi-scale testing on rectangular images
 ```
 $ python testing_modular_rectangular.py
 ```
 
 # Results
 
-Total Text 
+Total Text
 
 | Backbone    |  Image scale | Gaussian Threshold  | Segmentation Threshold| Precision /Recall/F1-score |
 |-------------|--------------|---------------------|-----------------------|----------------------------|
@@ -127,5 +128,3 @@ ICDAR 2015
 | VGG-16      |              |                     |                       |                            |
 | VGG-16      |              |                     |                       |                            |
 | VGG-16      |              |                     |                       |                            |
-
-
