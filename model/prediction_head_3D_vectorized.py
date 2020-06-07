@@ -55,7 +55,7 @@ class PredictionHead3D(nn.Module):
                            x_coordinate,\
                            y_coordinate,\
                            height,\
-                           width):
+                           width, points):
         ###############################################
         #rotated gaussians
         #define the angular values
@@ -82,13 +82,24 @@ class PredictionHead3D(nn.Module):
         i= torch.linspace(0,height-1,height).to(device)
         i=i.unsqueeze(1)
         i= i.repeat(1,width) # HxW
-
+        # addede code section
+        ###############################################
+        # repeat on the depth
+        i = i.unsqueeze(0)
+        i = i.repeat(points,1,1)  # PxHxW
+        ###############################################
 
         #j: indices along width
         j= torch.linspace(0,width-1,width).to(device)
         j=j.unsqueeze(1)
         j= j.repeat(1,height).T # HxW
 
+        # addede code section
+        ###############################################
+        # repeat on the depth
+        j = j.unsqueeze(0)
+        j = j.repeat(points,1,1)  # PxHxW
+        ###############################################
 
 
         #the x & y around which gaussian is centered
@@ -110,9 +121,9 @@ class PredictionHead3D(nn.Module):
         # plt.imshow(gaussian.squeeze())
         # plt.show()
         del a,b,c,A,B,C,i,j
-        # return torch.max(gaussian,0).values
+        return torch.max(gaussian,0).values
 
-        return gaussian
+        #return gaussian
 
 
     def forward(self,\
@@ -158,43 +169,71 @@ class PredictionHead3D(nn.Module):
             #print("non zero size",batch_non_zero_variances.shape)
             batch_no_of_non_zero_variances= batch_non_zero_variances.size()[0]
 
-            for j in range(batch_no_of_non_zero_variances):
-                x_coordinate=batch_non_zero_variances[j,0].item()
-                y_coordinate= batch_non_zero_variances[j,1].item()
+            #VECTORIZE THIS CODE LATER
 
+            # coordinate_x ==> Px1x1  ==> PxHxW
+            # coordinate_y ==> Px1x1  ==> PxHxW
+            # variance   ==> Px1x1    ==> PxHxW
+            x_coordinate = batch_non_zero_variances[:,0]  #P
+            y_coordinate = batch_non_zero_variances[:,1]  #P
+            variance_height =   batch_variance_height[x_coordinate, y_coordinate] #P
+            variance_width =   batch_variance_width[x_coordinate, y_coordinate] #P
+            theta_map =   batch_theta_map[x_coordinate, y_coordinate] #P
 
-                # #print("type ",x_coordinate.dtype,y_coordinate.dtype,variance.dtype)
-                # x_coordinate = x_coordinate.view(batch_no_of_non_zero_variances,1,1).repeat(1,height,width)
-                # y_coordinate = y_coordinate.view(batch_no_of_non_zero_variances,1,1).repeat(1,height,width)
-                # variance_height = variance_height.view(batch_no_of_non_zero_variances,1,1).repeat(1,height,width)
-                # variance_width = variance_width.view(batch_no_of_non_zero_variances,1,1).repeat(1,height,width)
-                # theta_map = theta_map.view(batch_no_of_non_zero_variances,1,1).repeat(1,height,width)
+            slice_list = get_slice(batch_no_of_non_zero_variances,size_of_slice)
+            sliced_gaussian_map=[]
+            for index in range(len(slice_list)):
+                slice = slice_list[index]
+                slice_length=slice[1]-slice[0]
+                #print(slice_length, slice_list[index], x_coordinate.shape)
+                #print("type ",x_coordinate.dtype,y_coordinate.dtype,variance.dtype)
+                X_Coordinate = x_coordinate[slice[0]:slice[1]].view(slice_length,1,1).repeat(1,height,width)
+                Y_Coordinate = y_coordinate[slice[0]:slice[1]].view(slice_length,1,1).repeat(1,height,width)
+                Variance_Height = variance_height[slice[0]:slice[1]].view(slice_length,1,1).repeat(1,height,width)
+                Variance_Width = variance_width[slice[0]:slice[1]].view(slice_length,1,1).repeat(1,height,width)
+                Theta_Map = theta_map[slice[0]:slice[1]].view(slice_length,1,1).repeat(1,height,width)
 
-
-                batch_gaussians= self.create_gaussian_3D(batch_variance_height[x_coordinate][y_coordinate],\
-                                        batch_variance_width[x_coordinate][y_coordinate],\
-                                        batch_theta_map[x_coordinate][y_coordinate],\
-                                        x_coordinate,\
-                                        y_coordinate,\
+                batch_pooled_gaussians= self.create_gaussian_3D(Variance_Height,\
+                                        Variance_Width,\
+                                        Theta_Map,\
+                                        X_Coordinate.float(),\
+                                        Y_Coordinate.float(),\
                                         height,\
-                                        width)
-                #print("batch gaussians shape",batch_gaussians.shape)
-                batch_pooled_gaussians.append(batch_gaussians)
+                                        width, slice_length)
+                sliced_gaussian_map.append(batch_pooled_gaussians)
+                del batch_pooled_gaussians
+
+            # #print("type ",x_coordinate.dtype,y_coordinate.dtype,variance.dtype)
+            # x_coordinate = x_coordinate.view(batch_no_of_non_zero_variances,1,1).repeat(1,height,width)
+            # y_coordinate = y_coordinate.view(batch_no_of_non_zero_variances,1,1).repeat(1,height,width)
+            # variance_height = variance_height.view(batch_no_of_non_zero_variances,1,1).repeat(1,height,width)
+            # variance_width = variance_width.view(batch_no_of_non_zero_variances,1,1).repeat(1,height,width)
+            # theta_map = theta_map.view(batch_no_of_non_zero_variances,1,1).repeat(1,height,width)
+            #
+            #
+            # batch_pooled_gaussians= self.create_gaussian_3D(variance_height,\
+            #                         variance_width,\
+            #                         theta_map,\
+            #                         x_coordinate.float(),\
+            #                         y_coordinate.float(),\
+            #                         height,\
+            #                         width, batch_no_of_non_zero_variances)
 
             #All gaussians are drawn now.
             #Take max along channel
-            batch_pooled_gaussians=torch.stack(batch_pooled_gaussians,0)
+            batch_pooled_gaussians=torch.stack(sliced_gaussian_map,0)
             batch_pooled_gaussians=torch.max(batch_pooled_gaussians,0).values
-
+            #print("batch pooled gaussians",batch_pooled_gaussians.shape)
+            # plt.imshow(batch_pooled_gaussians)
+            # plt.show()
             #Gaussian thresholding
             batch_pooled_gaussians=(batch_pooled_gaussians>=self.gaussian_segmentation_threshold).float()*batch_pooled_gaussians
 
             #Unsqueeze to add channel dimension,
             #[1,H,W]
-            #print("shape of batch pooled gaussians",batch_pooled_gaussians.shape)
             batch_pooled_gaussians=batch_pooled_gaussians.unsqueeze(0)
             final_stacked_gaussian_map.append(batch_pooled_gaussians)
-
+            del batch_pooled_gaussians
         #Stack Individual outputs along Common Batch dimension
         final_stacked_gaussian_map= torch.stack(final_stacked_gaussian_map,0)
         #print("shape of final map",final_stacked_gaussian_map.shape)

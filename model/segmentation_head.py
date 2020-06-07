@@ -17,7 +17,7 @@ class SegmentationHead(nn.Module):
 
     def forward(self, x):
 
-        x= self.segmentation_conv(x)
+        x= F.sigmoid(self.segmentation_conv(x))
         return x
 
 if __name__ == '__main__':
