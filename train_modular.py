@@ -105,7 +105,7 @@ def visualization(visual_list ):
         opts=dict(title='TotalText Dataset', caption='Ground Truth for Gaussian Branch'),
     )
     viz.image(
-        visual_list[2][0].detach().cpu().numpy()*100,
+        visual_list[2].detach().cpu().numpy()*100,
         win="contour_map",
         opts=dict(title='TotalText Dataset', caption='Contour Prediction from Gaussian Branch'),
     )
@@ -181,32 +181,41 @@ if args.visualization:
 def load_model(args,device=torch.device("cuda:0" if torch.cuda.is_available() else "cpu")):
     model=Segression(center_line_segmentation_threshold=0.999,backbone=args.backbone,segression_dimension= 3).to(device)
     if args.checkpoint!="":
-        model.load_state_dict(torch.load(args.checkpoint,map_location=device),strict=False)
+        model.load_state_dict(torch.load(args.checkpoint,map_location=device),strict=True)
         print("loaded checkpoint at ",args.checkpoint)
     return model
 
 def check_boundary_condition_and_modify(center_line_map,):
     center_w, center_h = center_line_map.shape[-2]//2, center_line_map.shape[-1]//2
     vector_of_text_presence = torch.sum(torch.sum(center_line_map.squeeze(),axis=-1),axis=-1)
-    vector_of_text_presence = torch.eq(vector_of_text_presence,0)*1
-    zero_indices = torch.nonzero(vector_of_text_presence)
+    #print('vector', vector_of_text_presence)
+    vector_of_non_text_presence = torch.eq(vector_of_text_presence,0)*1
+    vector_of_text_presence = torch.gt(vector_of_text_presence,0)*1
+    zero_indices = torch.nonzero(vector_of_non_text_presence)
+    non_zero_indices = torch.nonzero(vector_of_text_presence)
     flag=True
 
     # check 1 : all slices of segmentation is zeros .. i.e. the training batch contains no text instances
     if torch.sum(center_line_map)==0:
         # set center pixel with value 1 i.e. put some arbitrary point on center line map
+        #print("========>CASE:1")
         center_line_map[:,:,center_h, center_w]=1
         zero_indices=torch.linspace(0,center_line_map.shape[0]-1,center_line_map.shape[0]).type(torch.LongTensor).to(device)
         flag=False
+        indices = zero_indices
 
     # check 2 : if some of the images does not contains the text instances
     elif zero_indices.shape[0]>0:
+        #print("========>CASE:2")
         # set center pixel with value 1 i.e. put some arbitrary point on center line map
+        #print(zero_indices)
         center_line_map[zero_indices,:,center_h, center_w]=1
+        indices = non_zero_indices
     else:
-        zero_indices=torch.linspace(0,center_line_map.shape[0]-1,center_line_map.shape[0]).type(torch.LongTensor).to(device)
+        #print("========>CASE:3")
+        indices=torch.linspace(0,center_line_map.shape[0]-1,center_line_map.shape[0]).type(torch.LongTensor).to(device)
 
-    return center_line_map, zero_indices, flag
+    return center_line_map, indices, flag
 
 
 
@@ -263,7 +272,7 @@ def main():
         compressed_ground_truth= compressed_ground_truth.unsqueeze(1)
 
         #model.switch_gaussian_label_map(center_line_map)
-        center_line_map, zero_indices, flag = check_boundary_condition_and_modify(center_line_map)
+        center_line_map, indices, flag = check_boundary_condition_and_modify(center_line_map)
         if max_value<torch.sum(center_line_map):
             max_value = torch.sum(center_line_map)
         #max_value=torch.max(max_value, torch.sum(center_line_map))
@@ -287,9 +296,7 @@ def main():
         '''
         contour_map=contour_map.to(device)
 
-        if i_iter%args.update_visdom_iter==0 and args.visualization:
-            visual_list = [img[0],compressed_ground_truth[0,0,...],contour_map[0],score_map[0],center_line_map[0], variance_map[0]]
-            visualization(visual_list )
+
         contour_map=contour_map.squeeze(1)
 
         # center_line_map=center_line_map.squeeze(1)
@@ -310,9 +317,10 @@ def main():
         if flag:#zero_indices.shape[0]!=center_line_map.shape[0]:
             #print('perform this section ...yyyyy')
             #print(contour_map.shape, train_mask.shape, compressed_ground_truth.shape)
-            contour_map = contour_map[zero_indices,...]
-            train_mask = train_mask[zero_indices,...]
-            compressed_ground_truth=compressed_ground_truth[zero_indices,...]
+            #print('inside loop',indices)
+            contour_map = contour_map[indices,...]
+            train_mask = train_mask[indices,...]
+            compressed_ground_truth=compressed_ground_truth[indices,...]
             loss_contour_map = loss_dice(train_mask,contour_map,compressed_ground_truth)
             #print('loss 2', loss_contour_map)
             loss_seg = loss_seg+contour_loss_tolerance*loss_contour_map
@@ -327,6 +335,16 @@ def main():
             outF.write("\n")
             outF.close()
         # loss_seg_value += loss_seg.data.cpu().numpy()/args.iter_size
+
+        if i_iter%args.update_visdom_iter==0 and args.visualization:
+        #if loss_contour_map==-1000 and args.visualization:
+        # if 1:
+
+            #print("visualzing the error case of segmentation",torch.unique(center_line_map))
+            #print(img[0].shape,compressed_ground_truth[0,...].shape,contour_map[0].shape,score_map[0].shape,center_line_map[0].shape, variance_map[0].shape)
+
+            visual_list = [img[0],compressed_ground_truth[0,...],contour_map[0],score_map[0],center_line_map[0], variance_map[0]]
+            visualization(visual_list )
 
         if i_iter%10==0 :
             print('exp = {}'.format(args.snapshot_dir))
