@@ -34,6 +34,7 @@ class Segression(nn.Module):
                  out_channels=32,\
                  backbone='VGG',\
                  segression_dimension= 3,\
+                 mode= 'train',\
                  center_line_segmentation_threshold= 0.7,\
                  gaussian_segmentation_threshold = 0.7,\
                  epsilon= 1e-7,\
@@ -44,6 +45,7 @@ class Segression(nn.Module):
         self.epsilon= epsilon
         self.in_channels= in_channels
         self.out_channels= out_channels
+        self.mode= mode
         #initialize backbone
         if backbone =='VGG':
             self.backbone= VGGWrapper(in_channels=in_channels,\
@@ -119,21 +121,32 @@ class Segression(nn.Module):
         #compute center line segmentation
         center_line_segmentation= self.segmentation_head(x)
 
-        # if no external map given, use center_line_segmentation to compute gaussians.
 
-        if segmentation_map is None:
+        #if mode is train, segmentation map used to create gaussians
+        if self.mode== 'train':
+            # if no external map given, use center_line_segmentation to compute gaussians.
 
-            #call a code to perform skeletonization on center_line_segmentation (Future Edit)
+            if segmentation_map is None:
 
-            gaussian_segmentation= self.prediction_head(variance_map= variance,\
-                                                        segmentation_map= center_line_segmentation)
-            #skeletonization map
+                #call a code to perform skeletonization on center_line_segmentation (Future Edit)
+
+                gaussian_segmentation= self.prediction_head(variance_map= variance,\
+                                                            segmentation_map= center_line_segmentation)
+                #skeletonization map
+            else:
+                #use externally provided map for training
+                gaussian_segmentation= self.prediction_head(variance_map=variance,\
+                                                            segmentation_map=segmentation_map)
+            #print("backbone pass",x.size())
+            return gaussian_segmentation, center_line_segmentation, variance
+
+        elif self.mode== 'test':
+            #dont return gaussian map since it is explicitly drawn in the training code
+            #print("performing testing")
+            return center_line_segmentation,variance
+
         else:
-            #use externally provided map for training
-            gaussian_segmentation= self.prediction_head(variance_map=variance,\
-                                                        segmentation_map=segmentation_map)
-        #print("backbone pass",x.size())
-        return gaussian_segmentation, center_line_segmentation, variance
+            raise Exception("Model should be operated in train/test mode only")
 if __name__ == '__main__':
     segression= Segression(backbone= "ResNest",segression_dimension=1)
     x= torch.randn(2,3,256,512)

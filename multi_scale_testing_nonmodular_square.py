@@ -200,7 +200,7 @@ for i,batch in enumerate(test_loader):
         if ids[component_no]==0:
             continue
         current_score_map= (blobs_labels==ids[component_no]).astype('uint8')*255
-        # print(np.unique(current_score_map),"rajat")
+        # print(np.unique(current_score_map),"current score map")
         contours,hierarchy=cv2.findContours(current_score_map, cv2.RETR_LIST,cv2.CHAIN_APPROX_NONE)
         #extract the single contour which is there
         contours= contours[0].squeeze(1)
@@ -400,4 +400,3 @@ for i,batch in enumerate(test_loader):
         #reset the content string
         content=''
     fid.close()
-

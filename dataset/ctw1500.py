@@ -61,7 +61,6 @@ class CTW1500(TextDataset):
                     polygons.append(TextInstance(pts, ori, text))
                     contours.append(pts)
         else:
-            #print("===========>IT'S BHUNIYA GENTLEMEN, IT's BHUNIYA :-).........")
             for line in lines:
                 line = [int(i) for i in line]
                 x= []

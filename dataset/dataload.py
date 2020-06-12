@@ -172,23 +172,33 @@ class TextDataset(data.Dataset):
 
     def create_compressed_gt(self,polygons):
 
-        # point_list= []
-    #    gt = np.zeros((512,512), np.uint8)
         gt= np.zeros((128,128), np.uint8)
+        polygon_edges= np.zeros((128,128), np.uint8)
+        contour_edges= np.zeros((128,128), np.uint8)
         for i, polygon in enumerate(polygons):
+            temp_edges= np.zeros((128,128), np.uint8)
             if polygon.text != '#':
                 point_list= polygon.points.astype(int)//4
                 #print("in draw contour",point_list.shape)
                 cv2.drawContours(gt,[point_list],-1,(1,1,1),-1)
-
-        #point_list=np.asarray(point_list)
-        #print("godzilla",point_list.shape)
+                cv2.drawContours(temp_edges,[point_list],-1,(1,1,1),-1)
+                sobelx = cv2.Sobel(temp_edges,cv2.CV_64F,1,0,ksize=3)
+                sobely = cv2.Sobel(temp_edges,cv2.CV_64F,0,1,ksize=3)
+                mag = np.sqrt(sobelx**2+sobely**2)
+                polygon_edges = polygon_edges + mag
+        sobelx = cv2.Sobel(gt,cv2.CV_64F,1,0,ksize=3)
+        sobely = cv2.Sobel(gt,cv2.CV_64F,0,1,ksize=3)
+        contour_edges = np.sqrt(sobelx**2+sobely**2)
 
         #print("godzilla",type(point_list[0]),point_list[0])
-        #plt.imshow(gt)
-        #plt.show()
+        # plt.subplot(1,3,1)
+        # plt.imshow(gt)
+        # plt.subplot(1,3,2)
+        # plt.imshow(polygon_edges)
+        # plt.subplot(1,3,3)
+        # plt.imshow(contour_edges)
+        # plt.show()
         return gt
-
 
     def get_training_data(self, image, polygons, image_id, image_path,gt_mat_path):
         #print("during entry image shape is",image.shape)
@@ -214,7 +224,7 @@ class TextDataset(data.Dataset):
             image, polygons = self.transform(image, copy.copy(polygons))
             #print("after transformation",image.shape)
         compressed_groud_truth= self.create_compressed_gt(polygons)
-        #print("rajat polygons",type(polygons))
+        #print(" polygons",type(polygons))
         tcl_mask = np.zeros(image.shape[:2], np.uint8)
         #print("tcl_mask_shape",tcl_mask.shape)
         radius_map = np.zeros(image.shape[:2], np.float32)
@@ -225,7 +235,7 @@ class TextDataset(data.Dataset):
         #check the number of disks which are to be fit
         #print("no of disks",cfg.n_disk)
         #print("no of polygons",len(polygons))
-        #print('rajat gt mat path',gt_mat_path)
+        #print(' gt mat path',gt_mat_path)
         center_points_list= []
         radius_list= []
         point_stack=[]
