@@ -423,7 +423,7 @@ def skeletonization(pred_center_line, scaling_factor,  max_scale_index):
         # print("current score map")
         # plt.imshow(current_score_map)
         # plt.show()
-        # print(np.unique(current_score_map),"rajat")
+        # print(np.unique(current_score_map),"current score map")
         contours,hierarchy=cv2.findContours(current_score_map, cv2.RETR_LIST,cv2.CHAIN_APPROX_NONE)
         #extract the single contour which is there
         contours= contours[0].squeeze(1)
@@ -653,4 +653,3 @@ if __name__ == '__main__':
 
         visualize_prediction(filtered_contour_list, image_path, [H_orig, W_orig])
         writing_predictions(result_dir, filtered_contour_list,image_id)
-

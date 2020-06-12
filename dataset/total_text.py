@@ -37,7 +37,7 @@ class TotalText(TextDataset):
         :return: (list), TextInstance
         """
         #print("matrix parser called")
-        #print("rajat",mat_path.split('.')[-1])
+        #print("",mat_path.split('.')[-1])
         #if mat_path.split('.')[-1]== 'mat':
         if mat_path.split('.')[-1]=='mat':
             #print("true",mat_path)

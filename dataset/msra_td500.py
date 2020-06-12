@@ -105,12 +105,11 @@ class MSRATD500(TextDataset):
                 image_id= mat_path.split('/')[-1].split('.')[0]+'.jpg'
 
         else:
-            #print("===========>IT'S BHUNIYA GENTLEMEN, IT's BHUNIYA :-).........")
+
             with open(mat_path) as f:
                 lines= [line.strip().split(',') for line in f.readlines()]
 
             image_id= mat_path.split('/')[-1].split('.')[0]+'.JPG'
-            #print("================>BHUNIYA IMAGE ID ",image_id)
 
 
             for line in lines:

@@ -289,7 +289,7 @@ class Normalize(object):
 
 class Resize(object):
     def __init__(self, size=256):
-        self.size_H, self.size_W = size
+        self.size_H, self.size_W = size,size
 
     def __call__(self, image, polygons=None):
         h, w, _ = image.shape
@@ -328,6 +328,7 @@ class Augmentation(object):
 
 class BaseTransform(object):
     def __init__(self, size, mean, std):
+        #print("called base transform")
         self.size = size
         self.mean = mean
         self.std = std
