@@ -34,9 +34,9 @@ def load_dataset_images(path):
     image_ext=['jpg','JPG','png']
     for ext in image_ext:
         for file in glob.glob(os.path.join(path, "*."+ext)):
-            print(file)
+            #print(file)
             dataset.append(file)
-    print(dataset)
+    #print(dataset)
     return dataset
 
 def translation(self,delta_x, delta_y):
@@ -180,12 +180,15 @@ def parse_prediction_file(filename):
             coord.append(int(line[index]))
         coord = np.asarray(coord)
         coord=coord.reshape(-1,2)
-        coord_swap=np.zeros(coord.shape)
-        coord_swap[:,0]=coord[:,1]
-        coord_swap[:,1]=coord[:,0]
-        coord_swap=coord_swap.astype(int)
-        print(coord.shape, coord_swap.shape)
-        predictions.append(coord_swap)
+        if args.dataset=='TOTALTEXT':
+            coord_swap=np.zeros(coord.shape)
+            coord_swap[:,0]=coord[:,1]
+            coord_swap[:,1]=coord[:,0]
+            coord_swap=coord_swap.astype(int)
+            #print(coord.shape, coord_swap.shape)
+            predictions.append(coord_swap)
+        else:
+            predictions.append(coord)
     return predictions
 
 def dump_visualization(image_path, gt, predictions):
@@ -193,12 +196,14 @@ def dump_visualization(image_path, gt, predictions):
     ground_truth_image = original_image.copy()
     prediction_image = original_image.copy()
 
+
     for index in range(len(gt)):
         pts = gt[index]
         cv2.drawContours(ground_truth_image, [pts],0,(255,0,255), 5)
     for index in range(len(predictions)):
         pts=predictions[index]
-        print(pts.shape, pts)
+        #print("sample visualization",index, " out of ",len(predictions))
+        #print(pts.shape, pts)
         cv2.drawContours(prediction_image, [pts],0,(255,0,255), 5)
     im_to_save= np.concatenate((original_image,\
     ground_truth_image,prediction_image),axis=1)
@@ -222,11 +227,12 @@ else:
 image_dir = os.path.join(dir_root, 'Images/Test')
 gt_dir =os.path.join(dir_root, 'gt/Test')
 dataset= load_dataset_images(image_dir)
-for image_file_name in dataset:
+for i,image_file_name in enumerate(dataset):
     filename = image_file_name.split(os.sep)[-1].split('.')[0]
     ground_truth_annotation = parse_ground_truth(filename,\
                               dataset=args.dataset)
-    print(ground_truth_annotation)
+    #print(ground_truth_annotation)
     prediction_annotaiton = parse_prediction_file(filename)
+    print("processing",i, " out of",len(dataset), "samples")
     dump_visualization(image_file_name,\
     ground_truth_annotation, prediction_annotaiton)
