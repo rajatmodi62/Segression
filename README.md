@@ -29,7 +29,7 @@ Augmentation used:
 
 | Backbone    |  Dataset     |    Download Link                                                                              |
 |-------------|--------------|-----------------------------------------------------------------------------------------------|
-|VGG-16       | Synthetic    | (download)[https://drive.google.com/file/d/1u8lcuyE7poKJfEWnQlm3oQHlYA1lZ-62/view?usp=sharing]|
+|VGG-16       | Synthetic    | [download](https://drive.google.com/file/d/1u8lcuyE7poKJfEWnQlm3oQHlYA1lZ-62/view?usp=sharing)|
 |VGG-16       | Total Text   |                                                                                               |
 |VGG-16       | CTW1500      |                                                                                               |
 |VGG-16       | ICDAR 2015   |                                                                                               |
