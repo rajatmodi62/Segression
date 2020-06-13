@@ -28,6 +28,9 @@ from dataset.synth_text import SynthText
 from model.segression import Segression
 from util.augmentation import BaseTransform, Augmentation
 from loss import *
+from model.edge_detection import EdgeDetection
+
+
 
 start = timeit.default_timer()
 
@@ -123,6 +126,16 @@ def visualization(visual_list ):
         (visual_list[5].detach().cpu().numpy()),
         win="changed_variance_map",
         opts=dict(title='TotalText Dataset', caption='Gaussian Variance Map  conditioning Segmentation Branch'),
+    )
+    viz.image(
+        (visual_list[6].detach().cpu().numpy()),
+        win="contour_edge_map",
+        opts=dict(title='TotalText Dataset', caption='contour edge ground truth'),
+    )
+    viz.image(
+        (visual_list[7][0].detach().cpu().numpy()),
+        win="pred_sobel_map",
+        opts=dict(title='TotalText Dataset', caption='predicted sobel edge map'),
     )
 
 
@@ -233,6 +246,7 @@ def main():
         os.makedirs(model_save_dir)
 
     model.train()
+    edge_ = EdgeDetection()
 
     #Define the training superset
 
@@ -262,14 +276,18 @@ def main():
             trainloader_iter = enumerate(trainloader)
             _, batch = trainloader_iter.__next__()
 
-        image, compressed_ground_truth,center_line_map,train_mask, tr_mask, tcl_mask, radius_map, sin_map, cos_map=batch
+        image, ground_truth,center_line_map,train_mask, tr_mask, tcl_mask, radius_map, sin_map, cos_map=batch
         img=image.to(device)
         center_line_map=center_line_map.to(device)
         center_line_map=center_line_map.unsqueeze(1)
         train_mask= train_mask.to(device)
-        compressed_ground_truth= compressed_ground_truth.to(device)
+
+        compressed_ground_truth= ground_truth[0].to(device)
         train_mask= train_mask.unsqueeze(1)
         compressed_ground_truth= compressed_ground_truth.unsqueeze(1)
+
+        contour_edge_ground_truth= ground_truth[2].to(device)
+
 
         #model.switch_gaussian_label_map(center_line_map)
         center_line_map, indices, flag = check_boundary_condition_and_modify(center_line_map)
@@ -280,6 +298,8 @@ def main():
         #print('unique elements in input center_line',torch.unique(center_line_map))
 
         contour_map,score_map, variance_map=model(img, segmentation_map=center_line_map)
+        #print('HHHHHOOOOOOOOOOOOOOOOOOOOOOOOOOO', contour_map.shape)
+        sobel_edge=edge_(contour_map)
         #print(contour_map)
         '''
         if flag==True:
@@ -322,8 +342,9 @@ def main():
             train_mask = train_mask[indices,...]
             compressed_ground_truth=compressed_ground_truth[indices,...]
             loss_contour_map = loss_dice(train_mask,contour_map,compressed_ground_truth)
+            loss_edge_map = loss_dice(train_mask,sobel_edge,contour_edge_ground_truth)
             #print('loss 2', loss_contour_map)
-            loss_seg = loss_seg+contour_loss_tolerance*loss_contour_map
+            loss_seg = loss_seg+contour_loss_tolerance*(loss_contour_map+loss_edge_map)
 
         if not torch.isnan(loss_seg):
             loss_seg.backward()
@@ -343,7 +364,8 @@ def main():
             #print("visualzing the error case of segmentation",torch.unique(center_line_map))
             #print(img[0].shape,compressed_ground_truth[0,...].shape,contour_map[0].shape,score_map[0].shape,center_line_map[0].shape, variance_map[0].shape)
 
-            visual_list = [img[0],compressed_ground_truth[0,...],contour_map[0],score_map[0],center_line_map[0], variance_map[0]]
+            visual_list = [img[0],compressed_ground_truth[0,...],contour_map[0],score_map[0],\
+            center_line_map[0], variance_map[0], contour_edge_ground_truth[0],sobel_edge[0]]
             visualization(visual_list )
 
         if i_iter%10==0 :

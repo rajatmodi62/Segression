@@ -2,6 +2,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import matplotlib.pyplot as plt
+# from model.edge_detection import EdgeDetection
 
 def get_slice(total_indices,size_of_slice):
   slice=[]
@@ -47,6 +48,7 @@ class PredictionHead3D(nn.Module):
         self.gaussian_segmentation_threshold= gaussian_segmentation_threshold
         #Pertubation to prevent gaussian from exploding
         self.epsilon= epsilon
+
         #self.epsilon=0
     def create_gaussian_3D(self,\
                            variance_height,\
@@ -186,8 +188,11 @@ class PredictionHead3D(nn.Module):
             batch_pooled_gaussians=torch.stack(batch_pooled_gaussians,0)
             batch_pooled_gaussians=torch.max(batch_pooled_gaussians,0).values
 
+
             #Gaussian thresholding
             batch_pooled_gaussians=(batch_pooled_gaussians>=self.gaussian_segmentation_threshold).float()*batch_pooled_gaussians
+            # if type=='border':
+            #     batch_pooled_gaussians=self.edge(batch_pooled_gaussians)
 
             #Unsqueeze to add channel dimension,
             #[1,H,W]

@@ -18,18 +18,27 @@ class EdgeDetection(nn.Module):
                                      [2., 0., -2.],
                                      [1., 0., -1.]]))
         self.sobel_kernel_horizontal=self.sobel_kernel.unsqueeze(0).unsqueeze(0)
-        self.sobel_kernel_horizontal=self.sobel_kernel_horizontal.type(torch.FloatTensor)
+        self.sobel_kernel_horizontal=self.sobel_kernel_horizontal.type(torch.FloatTensor).to(device)
 
         self.sobel_kernel_vertical = self.sobel_kernel.T.unsqueeze(0).unsqueeze(0)
-        self.sobel_kernel_vertical= self.sobel_kernel_vertical.type(torch.FloatTensor)
+        self.sobel_kernel_vertical= self.sobel_kernel_vertical.type(torch.FloatTensor).to(device)
 
 
 
-    def forward(self,segmentation_map):
+    def forward(self,segmentation_map,threshold=0.3):
+        #segmentation_map = segmentation_map.unsqueeze(1)#.unsqueeze(0)
         horizontal_grad = F.conv2d(segmentation_map, self.sobel_kernel_horizontal,padding=self.sobel_kernel.shape[0]//2)
         vertical_grad = F.conv2d(segmentation_map, self.sobel_kernel_vertical, padding=self.sobel_kernel.shape[0]//2)
         magnitude = torch.sqrt(horizontal_grad**2 + vertical_grad**2)
+        #print("before calling",magnitude.shape,magnitude)
+        #max_response = torch.max(magnitude.squeeze())
+        #print("===================>max resonse",max_response)
+        #magnitude = magnitude/max(max_response,1)
+        #print("unique values",torch.max(magnitude), torch.min(magnitude))
+        # magnitude= torch.gt(magnitude,threshold)*1.0
+        magnitude= torch.gt(magnitude,threshold)*(segmentation_map.squeeze())
         return magnitude
+
 
 if __name__ == '__main__':
     ed = EdgeDetection()
@@ -46,8 +55,8 @@ if __name__ == '__main__':
     mag = mag/torch.max(mag)
     mag = torch.gt(mag,0.5)*1.0
 
-    print('unique value', torch.unique(mag))
-    print("Edge Detection Module", seg_map.shape)
+    #print('unique value', torch.unique(mag))
+    #print("Edge Detection Module", seg_map.shape)
     plt.subplot(1,2,1)
     plt.imshow(seg_map[0].squeeze().numpy())
     plt.subplot(1,2,2)

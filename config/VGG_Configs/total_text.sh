@@ -10,7 +10,7 @@ DATASET='TOTALTEXT'
 CHECKPOINT_NO=0
 UPDATE_VISDOM_ITER=10
 BACKBONE='VGG'
-CHECKPOINT_PATH='snapshots/SynthText_3d_rotated_gaussian_without_attention_200000.pth'
+CHECKPOINT_PATH='snapshots/batch_size_2lr_0.0001n_steps_20000dataset_SynthTextbackbone_VGG/SynthText_3d_rotated_gaussian_without_attention_20000.pth'
 ITERATION_TO_START_FROM=`expr $CHECKPOINT_NO + 1`
 CUDA_DEVICE=0
 

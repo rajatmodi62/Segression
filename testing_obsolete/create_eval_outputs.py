@@ -54,7 +54,8 @@ class EvalOutputs():
                 else:
                     content+=str(x)+','+str(y)+','
             #remove last comma
-            content= content[:-1]+'\n'
+
+            content= content[:-1]+',1'+'\n'
             fid.write(content)
             #reset
             content=''
@@ -88,9 +89,9 @@ class EvalOutputs():
             raise Exception("Prediction Error:Invalid Dataset given")
 
         elif self.dataset=='ICDAR2015':
-
+            self.generate_x_y_output(contour_list,'res_'+image_id,swap=False)
             #to handle
-            raise Exception("Prediction Error:Invalid Dataset given")
+            #raise Exception("Prediction Error:Invalid Dataset given")
 
         else:
             raise Exception("Prediction Error:Invalid Dataset given")

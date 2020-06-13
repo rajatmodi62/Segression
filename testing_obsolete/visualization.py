@@ -137,7 +137,7 @@ def parse_ground_truth(filename, dataset):
             polygons.append(pts)
 
     elif dataset=='ICDAR2015':
-        gt_path=os.path.join(gt_dir,filename+'.txt')
+        gt_path=os.path.join(gt_dir,'gt_'+filename+'.txt')
         with open(gt_path) as f:
             lines= f.readlines()
         for line in lines:
