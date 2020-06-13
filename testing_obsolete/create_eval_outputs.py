@@ -56,7 +56,8 @@ class EvalOutputs():
             #remove last comma
             content= content[:-1]+'\n'
             fid.write(content)
-
+            #reset
+            content=''
         fid.close()
 
     '''
