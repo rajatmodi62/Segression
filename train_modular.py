@@ -76,6 +76,8 @@ def get_arguments():
                         help="Iteration to start from if training interrupted")
     parser.add_argument("--backbone", type=str, default="VGG",
                         help="Enter the Backbone of the model BACKBONE/RESNEST")
+    parser.add_argument("--train-category", type=str, default="contour_edge",
+                        help="train with contour edge loss: valid values : 'contour_edge', 'polygon_edge': 'contour_only'")
     return parser.parse_args()
 
 def create_snapshot_path(args):
@@ -302,7 +304,8 @@ def main():
 
         contour_map,score_map, variance_map=model(img, segmentation_map=center_line_map)
         #print('HHHHHOOOOOOOOOOOOOOOOOOOOOOOOOOO', contour_map.shape)
-        sobel_edge=edge_(contour_map)
+        if args.train_category=='contour_edge':
+            sobel_edge=edge_(contour_map)
         #print(contour_map)
         '''
         if flag==True:
@@ -347,9 +350,12 @@ def main():
             train_mask = train_mask[indices,...]
             compressed_ground_truth=compressed_ground_truth[indices,...]
             loss_contour_map = loss_dice(train_mask,contour_map,compressed_ground_truth)
-            loss_edge_map = loss_dice(train_mask,sobel_edge,contour_edge_ground_truth)
-            #print('loss 2', loss_contour_map)
-            loss_seg = loss_seg+contour_loss_tolerance*(loss_contour_map+loss_edge_map)
+            if args.train_category=='contour_edge':
+                loss_edge_map = loss_dice(train_mask,sobel_edge,contour_edge_ground_truth)
+                #print('loss 2', loss_contour_map)
+                loss_seg = loss_seg+contour_loss_tolerance*(loss_contour_map+loss_edge_map)
+            else:
+                loss_seg = loss_seg+contour_loss_tolerance*(loss_contour_map)
 
             if not torch.isnan(loss_seg):
                 loss_seg.backward()
@@ -362,6 +368,7 @@ def main():
                 outF.write("\n")
                 outF.close()
         else:
+            print("fat gaya")
             continue
         # loss_seg_value += loss_seg.data.cpu().numpy()/args.iter_size
 
