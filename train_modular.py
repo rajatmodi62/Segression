@@ -36,7 +36,6 @@ start = timeit.default_timer()
 
 IMG_MEAN = np.array((104.00698793,116.66876762,122.67891434), dtype=np.float32)
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-
 def get_arguments():
     """Parse all the arguments provided from the CLI.
 
@@ -266,7 +265,11 @@ def main():
     print("iteration to start from",iteration_to_start_from)
     max_value=torch.sum(torch.zeros(5)).to(device)
 
-    for i_iter in range(iteration_to_start_from,args.num_steps):
+    #for i_iter in range(iteration_to_start_from,args.num_steps):
+    i_iter=0
+    while 1:
+        if i_iter>args.num_steps:
+            break
         loss_seg_value = 0
         optimizer.zero_grad()
         adjust_learning_rate(optimizer, i_iter)
@@ -331,6 +334,7 @@ def main():
 
         loss_score_map=centre_line_dice_loss(compressed_ground_truth,train_mask,score_map,center_line_map)
         loss_seg= score_map_loss_tolerance*loss_score_map
+
         #print('loss 1', loss_seg)
         # extract non zero planes contour maps and corresponding ground truth
         loss_contour_map= -1000
@@ -338,6 +342,7 @@ def main():
             #print('perform this section ...yyyyy')
             #print(contour_map.shape, train_mask.shape, compressed_ground_truth.shape)
             #print('inside loop',indices)
+
             contour_map = contour_map[indices,...]
             train_mask = train_mask[indices,...]
             compressed_ground_truth=compressed_ground_truth[indices,...]
@@ -346,15 +351,18 @@ def main():
             #print('loss 2', loss_contour_map)
             loss_seg = loss_seg+contour_loss_tolerance*(loss_contour_map+loss_edge_map)
 
-        if not torch.isnan(loss_seg):
-            loss_seg.backward()
-            optimizer.step()
+            if not torch.isnan(loss_seg):
+                loss_seg.backward()
+                optimizer.step()
+                i_iter+=1
+            else:
+                print("backprop error")
+                outF = open("train_ctw_backprop_errors.txt", "a")
+                outF.write(str(i_iter))
+                outF.write("\n")
+                outF.close()
         else:
-            print("backprop error")
-            outF = open("train_ctw_backprop_errors.txt", "a")
-            outF.write(str(i_iter))
-            outF.write("\n")
-            outF.close()
+            continue
         # loss_seg_value += loss_seg.data.cpu().numpy()/args.iter_size
 
         if i_iter%args.update_visdom_iter==0 and args.visualization:
@@ -381,6 +389,7 @@ def main():
                 except:
                     pass
             print("len of tensors",len)
+            print("backbrop counter",i_iter)
             print('iter = {0:8d}/{1:8d}, loss_seg = {2:.3f}, loss_gaussian_branch = {3:.3f}, loss_segmentation_branch = {4:.3f}'.format(i_iter, args.num_steps, loss_seg,loss_contour_map,loss_score_map))
 
 

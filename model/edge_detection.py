@@ -25,7 +25,7 @@ class EdgeDetection(nn.Module):
 
 
 
-    def forward(self,segmentation_map,threshold=0.3):
+    def forward(self,segmentation_map,threshold=0.3 ):
         #segmentation_map = segmentation_map.unsqueeze(1)#.unsqueeze(0)
         horizontal_grad = F.conv2d(segmentation_map, self.sobel_kernel_horizontal,padding=self.sobel_kernel.shape[0]//2)
         vertical_grad = F.conv2d(segmentation_map, self.sobel_kernel_vertical, padding=self.sobel_kernel.shape[0]//2)
