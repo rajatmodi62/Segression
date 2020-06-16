@@ -14,7 +14,7 @@ def loss_dice(dont_care_mask,probas,true_1_hot,eps=1e-7):
     cardinality = torch.sum(probas + true_1_hot,-1)
     cardinality = torch.sum(cardinality,-1)
     #cardinality = torch.sum(cardinality,-1)
-    #print("inter")
+    #print("inter", cardinality)
     dice_loss = (2. * intersection / (cardinality + eps)).mean()
     loss = (1 - dice_loss)
     # print(" ======================================> PATA CHALA !!!f ",loss, cardinality)

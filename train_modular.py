@@ -28,12 +28,15 @@ from dataset.synth_text import SynthText
 from model.segression import Segression
 from util.augmentation import BaseTransform, Augmentation
 from loss import *
+from model.edge_detection import EdgeDetection
+
+
+
 
 start = timeit.default_timer()
 
 IMG_MEAN = np.array((104.00698793,116.66876762,122.67891434), dtype=np.float32)
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-
 def get_arguments():
     """Parse all the arguments provided from the CLI.
 
@@ -74,6 +77,10 @@ def get_arguments():
                         help="Iteration to start from if training interrupted")
     parser.add_argument("--backbone", type=str, default="VGG",
                         help="Enter the Backbone of the model BACKBONE/RESNEST")
+    parser.add_argument("--train-category", type=str, default="contour_edge",
+                        help="train with contour edge loss: valid values : 'contour_edge', 'polygon_edge': 'contour_only'")
+    parser.add_argument("--out-channels", type=int, default=32,
+                        help="Save summaries and checkpoint every often.")
     return parser.parse_args()
 
 def create_snapshot_path(args):
@@ -123,6 +130,16 @@ def visualization(visual_list ):
         (visual_list[5].detach().cpu().numpy()),
         win="changed_variance_map",
         opts=dict(title='TotalText Dataset', caption='Gaussian Variance Map  conditioning Segmentation Branch'),
+    )
+    viz.image(
+        (visual_list[6].detach().cpu().numpy()),
+        win="contour_edge_map",
+        opts=dict(title='TotalText Dataset', caption='contour edge ground truth'),
+    )
+    viz.image(
+        (visual_list[7][0].detach().cpu().numpy()),
+        win="pred_sobel_map",
+        opts=dict(title='TotalText Dataset', caption='predicted sobel edge map'),
     )
 
 
@@ -179,7 +196,11 @@ if args.visualization:
     viz= Visdom()
 
 def load_model(args,device=torch.device("cuda:0" if torch.cuda.is_available() else "cpu")):
-    model=Segression(center_line_segmentation_threshold=0.999,backbone=args.backbone,segression_dimension= 3).to(device)
+    print("channels are",args.out_channels)
+    model=Segression(center_line_segmentation_threshold=0.999,\
+                    backbone=args.backbone,\
+                    segression_dimension= 3,\
+                    out_channels=args.out_channels).to(device)
     if args.checkpoint!="":
         model.load_state_dict(torch.load(args.checkpoint,map_location=device),strict=True)
         print("loaded checkpoint at ",args.checkpoint)
@@ -233,6 +254,7 @@ def main():
         os.makedirs(model_save_dir)
 
     model.train()
+    edge_ = EdgeDetection()
 
     #Define the training superset
 
@@ -252,7 +274,11 @@ def main():
     print("iteration to start from",iteration_to_start_from)
     max_value=torch.sum(torch.zeros(5)).to(device)
 
-    for i_iter in range(iteration_to_start_from,args.num_steps):
+    #for i_iter in range(iteration_to_start_from,args.num_steps):
+    i_iter=0
+    while 1:
+        if i_iter>args.num_steps:
+            break
         loss_seg_value = 0
         optimizer.zero_grad()
         adjust_learning_rate(optimizer, i_iter)
@@ -262,14 +288,18 @@ def main():
             trainloader_iter = enumerate(trainloader)
             _, batch = trainloader_iter.__next__()
 
-        image, compressed_ground_truth,center_line_map,train_mask, tr_mask, tcl_mask, radius_map, sin_map, cos_map=batch
+        image, ground_truth,center_line_map,train_mask, tr_mask, tcl_mask, radius_map, sin_map, cos_map=batch
         img=image.to(device)
         center_line_map=center_line_map.to(device)
         center_line_map=center_line_map.unsqueeze(1)
         train_mask= train_mask.to(device)
-        compressed_ground_truth= compressed_ground_truth.to(device)
+
+        compressed_ground_truth= ground_truth[0].to(device)
         train_mask= train_mask.unsqueeze(1)
         compressed_ground_truth= compressed_ground_truth.unsqueeze(1)
+
+        contour_edge_ground_truth= ground_truth[2].to(device)
+
 
         #model.switch_gaussian_label_map(center_line_map)
         center_line_map, indices, flag = check_boundary_condition_and_modify(center_line_map)
@@ -280,6 +310,9 @@ def main():
         #print('unique elements in input center_line',torch.unique(center_line_map))
 
         contour_map,score_map, variance_map=model(img, segmentation_map=center_line_map)
+        #print('HHHHHOOOOOOOOOOOOOOOOOOOOOOOOOOO', contour_map.shape)
+        if args.train_category=='contour_edge':
+            sobel_edge=edge_(contour_map)
         #print(contour_map)
         '''
         if flag==True:
@@ -311,6 +344,7 @@ def main():
 
         loss_score_map=centre_line_dice_loss(compressed_ground_truth,train_mask,score_map,center_line_map)
         loss_seg= score_map_loss_tolerance*loss_score_map
+
         #print('loss 1', loss_seg)
         # extract non zero planes contour maps and corresponding ground truth
         loss_contour_map= -1000
@@ -318,22 +352,31 @@ def main():
             #print('perform this section ...yyyyy')
             #print(contour_map.shape, train_mask.shape, compressed_ground_truth.shape)
             #print('inside loop',indices)
+
             contour_map = contour_map[indices,...]
             train_mask = train_mask[indices,...]
             compressed_ground_truth=compressed_ground_truth[indices,...]
             loss_contour_map = loss_dice(train_mask,contour_map,compressed_ground_truth)
-            #print('loss 2', loss_contour_map)
-            loss_seg = loss_seg+contour_loss_tolerance*loss_contour_map
+            if args.train_category=='contour_edge':
+                loss_edge_map = loss_dice(train_mask,sobel_edge,contour_edge_ground_truth)
+                #print('loss 2', loss_contour_map)
+                loss_seg = loss_seg+contour_loss_tolerance*(loss_contour_map+loss_edge_map)
+            else:
+                loss_seg = loss_seg+contour_loss_tolerance*(loss_contour_map)
 
-        if not torch.isnan(loss_seg):
-            loss_seg.backward()
-            optimizer.step()
+            if not torch.isnan(loss_seg):
+                loss_seg.backward()
+                optimizer.step()
+                i_iter+=1
+            else:
+                print("backprop error")
+                outF = open("train_ctw_backprop_errors.txt", "a")
+                outF.write(str(i_iter))
+                outF.write("\n")
+                outF.close()
         else:
-            print("backprop error")
-            outF = open("train_ctw_backprop_errors.txt", "a")
-            outF.write(str(i_iter))
-            outF.write("\n")
-            outF.close()
+            print("fat gaya")
+            continue
         # loss_seg_value += loss_seg.data.cpu().numpy()/args.iter_size
 
         if i_iter%args.update_visdom_iter==0 and args.visualization:
@@ -343,7 +386,8 @@ def main():
             #print("visualzing the error case of segmentation",torch.unique(center_line_map))
             #print(img[0].shape,compressed_ground_truth[0,...].shape,contour_map[0].shape,score_map[0].shape,center_line_map[0].shape, variance_map[0].shape)
 
-            visual_list = [img[0],compressed_ground_truth[0,...],contour_map[0],score_map[0],center_line_map[0], variance_map[0]]
+            visual_list = [img[0],compressed_ground_truth[0,...],contour_map[0],score_map[0],\
+            center_line_map[0], variance_map[0], contour_edge_ground_truth[0],sobel_edge[0]]
             visualization(visual_list )
 
         if i_iter%10==0 :
@@ -359,6 +403,7 @@ def main():
                 except:
                     pass
             print("len of tensors",len)
+            print("backbrop counter",i_iter)
             print('iter = {0:8d}/{1:8d}, loss_seg = {2:.3f}, loss_gaussian_branch = {3:.3f}, loss_segmentation_branch = {4:.3f}'.format(i_iter, args.num_steps, loss_seg,loss_contour_map,loss_score_map))
 
 

@@ -214,7 +214,7 @@ for i,batch in enumerate(test_loader):
         max_scale= scales[-1]//4
 
         #need to add threshold for performing voting
-        score_map= (score_map>0.40).astype('uint8')
+        score_map= (score_map>args.segmentation_threshold).astype('uint8')
         score_map=cv2.resize(score_map,(max_scale,max_scale), interpolation=cv2.INTER_NEAREST)
 
         score_map= (score_map>0).astype('uint8')
@@ -339,7 +339,7 @@ for i,batch in enumerate(test_loader):
                     print(j)
             component_gaussians= np.stack(component_gaussians,0)
             component_gaussians= np.max(component_gaussians,0)
-            component_gaussians= (component_gaussians>0.60).astype(int)
+            component_gaussians= (component_gaussians>args.gaussian_threshold).astype(int)
             component_gaussians=component_gaussians.astype('uint8')
 
             #contours,hierarchy=cv2.findContours(component_gaussians, cv2.RETR_LIST,cv2.CHAIN_APPROX_NONE)

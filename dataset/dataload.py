@@ -170,7 +170,7 @@ class TextDataset(data.Dataset):
             #self.fill_polygon(cos_map, polygon, value=cos_theta)
         return points_stack
 
-    def create_compressed_gt(self,polygons):
+    def create_compressed_gt(self,polygons, type='contour_border', viz=False):
 
         gt= np.zeros((128,128), np.uint8)
         polygon_edges= np.zeros((128,128), np.uint8)
@@ -189,16 +189,25 @@ class TextDataset(data.Dataset):
         sobelx = cv2.Sobel(gt,cv2.CV_64F,1,0,ksize=3)
         sobely = cv2.Sobel(gt,cv2.CV_64F,0,1,ksize=3)
         contour_edges = np.sqrt(sobelx**2+sobely**2)
+        polygon_edges = (polygon_edges>0.5)*1.0
+        contour_edges = (contour_edges>0.5)*1.0
 
-        #print("godzilla",type(point_list[0]),point_list[0])
-        # plt.subplot(1,3,1)
-        # plt.imshow(gt)
-        # plt.subplot(1,3,2)
-        # plt.imshow(polygon_edges)
-        # plt.subplot(1,3,3)
-        # plt.imshow(contour_edges)
-        # plt.show()
-        return gt
+        if viz==True:
+            print("godzilla",type(point_list[0]),point_list[0],\
+            np.unique(polygon_edges), np.unique(contour_edges))
+            plt.subplot(1,3,1)
+            plt.imshow(gt)
+            plt.subplot(1,3,2)
+            plt.imshow(polygon_edges)
+            plt.subplot(1,3,3)
+            plt.imshow(contour_edges)
+            plt.show()
+        # if type=='border':
+        #     return polygon_edges
+        # elif type=='contour_border':
+        #     return contour_edges
+        # else:
+        return [gt,polygon_edges, contour_edges]
 
     def get_training_data(self, image, polygons, image_id, image_path,gt_mat_path):
         #print("during entry image shape is",image.shape)
