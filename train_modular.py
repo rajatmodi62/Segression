@@ -32,6 +32,7 @@ from model.edge_detection import EdgeDetection
 
 
 
+
 start = timeit.default_timer()
 
 IMG_MEAN = np.array((104.00698793,116.66876762,122.67891434), dtype=np.float32)
@@ -78,6 +79,8 @@ def get_arguments():
                         help="Enter the Backbone of the model BACKBONE/RESNEST")
     parser.add_argument("--train-category", type=str, default="contour_edge",
                         help="train with contour edge loss: valid values : 'contour_edge', 'polygon_edge': 'contour_only'")
+    parser.add_argument("--out-channels", type=int, default=32,
+                        help="Save summaries and checkpoint every often.")
     return parser.parse_args()
 
 def create_snapshot_path(args):
@@ -193,7 +196,11 @@ if args.visualization:
     viz= Visdom()
 
 def load_model(args,device=torch.device("cuda:0" if torch.cuda.is_available() else "cpu")):
-    model=Segression(center_line_segmentation_threshold=0.999,backbone=args.backbone,segression_dimension= 3).to(device)
+    print("channels are",args.out_channels)
+    model=Segression(center_line_segmentation_threshold=0.999,\
+                    backbone=args.backbone,\
+                    segression_dimension= 3,\
+                    out_channels=args.out_channels).to(device)
     if args.checkpoint!="":
         model.load_state_dict(torch.load(args.checkpoint,map_location=device),strict=True)
         print("loaded checkpoint at ",args.checkpoint)

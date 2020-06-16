@@ -5,13 +5,13 @@ import torch.nn.functional as F
 #import backbones
 from model.vgg_backbone import VGGWrapper
 from model.resnest_backbone import ResNestWrapper
+from model.DB.db_backbone import SegDetectorModel
 #import segmentation head
 from model.segmentation_head import SegmentationHead
 #import prediction heads
 from model.prediction_head_1D import PredictionHead1D
 from model.prediction_head_2D import PredictionHead2D
 from model.prediction_head_3D import PredictionHead3D
-
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
 '''
@@ -55,8 +55,26 @@ class Segression(nn.Module):
             self.backbone= ResNestWrapper(in_channels=in_channels,\
                                       out_channels=out_channels,\
                                       pretrained= pretrained)
+
+        elif backbone== "DB":
+
+            self.backbone=SegDetectorModel()
+            #for training regarding ICDAR
+            checkpoint= 'snapshots/db_pretrained/ic15_resnet50'
+
+            #checkpoint= 'snapshots/db_pretrained/totaltext_resnet50'
+            old_state_dict= torch.load(checkpoint,map_location=device)
+            from collections import OrderedDict
+            new_state_dict = OrderedDict()
+
+            for k, v in old_state_dict.items():
+                name= k[:6]+k[13:]
+                new_state_dict[name] = v
+
+            self.backbone.load_state_dict(new_state_dict,strict=True)
+            print("loaded db backbone at:",checkpoint)
         else:
-            raise Exception("Backbone input should be VGG or ResNest")
+            raise Exception("Backbone input should be VGG/ResNest/DB")
 
         ########################################################################
         #initialize segmentation_head
@@ -148,6 +166,8 @@ class Segression(nn.Module):
         else:
             raise Exception("Model should be operated in train/test mode only")
 if __name__ == '__main__':
-    segression= Segression(backbone= "ResNest",segression_dimension=1)
-    x= torch.randn(2,3,256,512)
+    segression= Segression(backbone= "DB",\
+                            segression_dimension=3,\
+                            out_channels=256).to(device)
+    x= torch.randn(2,3,256,512).to(device)
     o= segression(x)
