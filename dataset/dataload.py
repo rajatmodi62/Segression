@@ -191,10 +191,12 @@ class TextDataset(data.Dataset):
         contour_edges = np.sqrt(sobelx**2+sobely**2)
         polygon_edges = (polygon_edges>0.5)*1.0
         contour_edges = (contour_edges>0.5)*1.0
+        contour_edges=contour_edges.astype('float32')
+        polygon_edges=polygon_edges.astype('float32') 
 
         if viz==True:
-            print("godzilla",type(point_list[0]),point_list[0],\
-            np.unique(polygon_edges), np.unique(contour_edges))
+            #print("godzilla",type(point_list[0]),point_list[0],\
+            #np.unique(polygon_edges), np.unique(contour_edges))
             plt.subplot(1,3,1)
             plt.imshow(gt)
             plt.subplot(1,3,2)
