@@ -93,8 +93,9 @@ parser.add_argument("--segmentation_threshold", type=float, default=0.4,
 parser.add_argument("--gaussian_threshold", type=float, default=0.6,
                     help="Thresholding parameter for predicted gaussian map, range (0,1)")
 parser.add_argument("--backbone", type=str, default="VGG",
-                    help="Enter the Backbone of the model, (VGG,RESNEST)")
-
+                    help="Enter the Backbone of the model, (VGG,RESNEST,DB)")
+parser.add_argument("--out-channels", type=int, default=32,
+                        help="Save summaries and checkpoint every often.")
 args = parser.parse_args()
 
 ################################################################################
@@ -136,9 +137,11 @@ result_dir.mkdir(exist_ok=True, parents=True)
 #set gpu
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 #load model
+print("channels is",args.out_channels)
 model= Segression(center_line_segmentation_threshold=args.segmentation_threshold,\
                     backbone=args.backbone,\
                     segression_dimension= 3,\
+                    out_channels= args.out_channels,\
                     mode='test').to(device)
 
 #load checkpoint
