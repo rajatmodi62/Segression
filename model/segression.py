@@ -12,6 +12,10 @@ from model.segmentation_head import SegmentationHead
 from model.prediction_head_1D import PredictionHead1D
 from model.prediction_head_2D import PredictionHead2D
 from model.prediction_head_3D import PredictionHead3D
+
+#add edge detection
+from model.edge_detection import EdgeDetection
+
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
 '''
@@ -36,7 +40,7 @@ class Segression(nn.Module):
                  segression_dimension= 3,\
                  mode= 'train',\
                  center_line_segmentation_threshold= 0.7,\
-                 gaussian_segmentation_threshold = 0.7,\
+                 gaussian_segmentation_threshold = 0.85,\
                  epsilon= 1e-7,\
                  pretrained=True):
         super(Segression, self).__init__()
@@ -60,9 +64,9 @@ class Segression(nn.Module):
 
             self.backbone=SegDetectorModel()
             #for training regarding ICDAR
-            checkpoint= 'snapshots/db_pretrained/ic15_resnet50'
+            #checkpoint= 'snapshots/db_pretrained/ic15_resnet50'
 
-            #checkpoint= 'snapshots/db_pretrained/totaltext_resnet50'
+            checkpoint= 'snapshots/db_pretrained/totaltext_resnet50'
             old_state_dict= torch.load(checkpoint,map_location=device)
             from collections import OrderedDict
             new_state_dict = OrderedDict()
@@ -110,6 +114,11 @@ class Segression(nn.Module):
         #initialize variance conv before prediction heads.
         self.variance_conv= nn.Conv2d(out_channels, segression_dimension, 1)
 
+
+        ########################################################################
+        #self.edge_detection= EdgeDetection()
+
+        #######################################################################
         print("Segression module initialized")
 
     '''
@@ -156,7 +165,11 @@ class Segression(nn.Module):
                 gaussian_segmentation= self.prediction_head(variance_map=variance,\
                                                             segmentation_map=segmentation_map)
             #print("backbone pass",x.size())
-            return gaussian_segmentation, center_line_segmentation, variance
+
+            #edge= self.edge_detection(gaussian_segmentation)
+            #print("==========fwd pass done")
+            return gaussian_segmentation,center_line_segmentation, variance
+
 
         elif self.mode== 'test':
             #dont return gaussian map since it is explicitly drawn in the training code

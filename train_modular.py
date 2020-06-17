@@ -29,7 +29,7 @@ from model.segression import Segression
 from util.augmentation import BaseTransform, Augmentation
 from loss import *
 from model.edge_detection import EdgeDetection
-
+from loss import BinaryFocalLoss
 
 
 
@@ -240,7 +240,7 @@ def check_boundary_condition_and_modify(center_line_map,):
 
 
 
-
+binary_focal_loss=BinaryFocalLoss(alpha=[1.0, 0.25], gamma=2)
 def main():
     cudnn.enabled = True
     gpu = args.gpu
@@ -254,7 +254,7 @@ def main():
         os.makedirs(model_save_dir)
 
     model.train()
-    edge_ = EdgeDetection()
+    edge_ = EdgeDetection().to(device)
 
     #Define the training superset
 
@@ -312,7 +312,8 @@ def main():
         contour_map,score_map, variance_map=model(img, segmentation_map=center_line_map)
         #print('HHHHHOOOOOOOOOOOOOOOOOOOOOOOOOOO', contour_map.shape)
         if args.train_category=='contour_edge':
-            sobel_edge=edge_(contour_map)
+            sobel_edge=edge_(contour_map).detach()
+            #print("in train soooooovel",sobel_edge.dtype)
         #print(contour_map)
         '''
         if flag==True:
@@ -341,10 +342,18 @@ def main():
 
         contour_loss_tolerance= 1
         score_map_loss_tolerance= 1
-
-        loss_score_map=centre_line_dice_loss(compressed_ground_truth,train_mask,score_map,center_line_map)
+        #
+        # print("dimesions",compressed_ground_truth.shape,\
+        #     train_mask.shape,\
+        #     score_map.shape,\
+        #     center_line_map)
+        #loss_score_map=centre_line_dice_loss(compressed_ground_truth,train_mask,score_map,center_line_map)
+        #convert train mask to bool
+        train_mask= train_mask.type(torch.bool)
+        loss_score_map= binary_focal_loss(score_map,center_line_map,train_mask)
         loss_seg= score_map_loss_tolerance*loss_score_map
 
+        #print("tst loss",loss_score_map)
         #print('loss 1', loss_seg)
         # extract non zero planes contour maps and corresponding ground truth
         loss_contour_map= -1000
@@ -357,14 +366,27 @@ def main():
             train_mask = train_mask[indices,...]
             compressed_ground_truth=compressed_ground_truth[indices,...]
             loss_contour_map = loss_dice(train_mask,contour_map,compressed_ground_truth)
+            #loss_contour_map=binary_focal_loss(contour_map,compressed_ground_truth,train_mask)
+            #print("====================loss contour map",loss_contour_map)
             if args.train_category=='contour_edge':
-                loss_edge_map = loss_dice(train_mask,sobel_edge,contour_edge_ground_truth)
+                #loss_edge_map=centre_line_dice_loss(contour_edge_ground_truth,train_mask,sobel_edge,contour_edge_ground_truth)
+                # print('________________________________>>>>>>>>>>>>>>>>>>')
+                # print('train mask ====>', train_mask)
+                # print('contour edge gt ===>>', contour_edge_ground_truth)
+                # print('--------->')
+                #loss_edge_map = loss_dice(train_mask,sobel_edge,contour_edge_ground_truth)
+                loss_edge_map= binary_focal_loss(sobel_edge,contour_edge_ground_truth,train_mask)
+                # print('uuuuuuuuuuuuuuuuuuuuuuuu ========>', loss_contour_map, loss_seg,loss_edge_map)
+                #, loss_edge_map,
                 #print('loss 2', loss_contour_map)
                 loss_seg = loss_seg+contour_loss_tolerance*(loss_contour_map+loss_edge_map)
             else:
                 loss_seg = loss_seg+contour_loss_tolerance*(loss_contour_map)
 
             if not torch.isnan(loss_seg):
+                # print('hello', loss_seg)
+                # print("-------------------------------------->LOSS",loss_contour_map.dtype,loss_score_map.dtype)
+
                 loss_seg.backward()
                 optimizer.step()
                 i_iter+=1
@@ -404,7 +426,7 @@ def main():
                     pass
             print("len of tensors",len)
             print("backbrop counter",i_iter)
-            print('iter = {0:8d}/{1:8d}, loss_seg = {2:.3f}, loss_gaussian_branch = {3:.3f}, loss_segmentation_branch = {4:.3f}'.format(i_iter, args.num_steps, loss_seg,loss_contour_map,loss_score_map))
+            print('iter = {0:8d}/{1:8d}, loss_seg = {2:.3f}, loss_gaussian_branch = {3:.3f}, loss_segmentation_branch = {4:.3f}, loss_edge_map= {5:.3f}'.format(i_iter, args.num_steps, loss_seg,loss_contour_map,loss_score_map,loss_edge_map))
 
 
         if i_iter >= args.num_steps-1:

@@ -1,14 +1,14 @@
-BATCH_SIZE=2
+BATCH_SIZE=4
 NUM_WORKERS=3
 INPUT_SIZE=512
 LEARNING_RATE=1e-4
 NUM_STEPS=100000
 POWER=0.9
-SAVE_PRED_EVERY=1000
+SAVE_PRED_EVERY=5000
 SNAPSHOT_DIR='./snapshots/'
 DATASET='TOTALTEXT'
 CHECKPOINT_NO=0
-UPDATE_VISDOM_ITER=10
+UPDATE_VISDOM_ITER=100
 BACKBONE='DB'
 #CHECKPOINT_PATH='snapshots/batch_size_2lr_0.0001n_steps_20000dataset_SynthTextbackbone_VGG/SynthText_3d_rotated_gaussian_without_attention_20000.pth'
 OUT_CHANNELS=256
@@ -30,4 +30,4 @@ CUDA_VISIBLE_DEVICES=$CUDA_DEVICE python train_modular.py --batch-size=$BATCH_SI
             --update-visdom-iter=$UPDATE_VISDOM_ITER\
             --backbone=$BACKBONE\
 	           --out-channels=$OUT_CHANNELS\
-             #--visualization
+             --visualization
