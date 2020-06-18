@@ -73,13 +73,16 @@ class EvalOutputs():
         #check dataset & accordingly process
         if self.dataset=='CTW1500':
 
-            self.generate_x_y_output(contour_list,image_id,swap=False)
+            #self.generate_x_y_output(contour_list,image_id,swap=False)
             # write command for executing the evaluation script
             #os.system('python ')
-
+            1
         elif self.dataset=='TOTALTEXT':
 
-            self.generate_x_y_output(contour_list,image_id,swap=True)
+            #db format
+            self.generate_x_y_output(contour_list,image_id,swap=False)
+            #original
+            #self.generate_x_y_output(contour_list,image_id,swap=True)
             # write command for executing the evaluation script
             #os.system('python Deteval.py ')
 

@@ -26,9 +26,9 @@ files.sort()
 for iscore in score_thresh_list:
     with open(outputstr+str(iscore)+'.txt', "w") as f1:
         for ix, filename in enumerate(files):
-            print(filename)
+            print('filename', filename)
             imagename = filename[:-4]
-            print(imagename)
+            print('imagenae ', imagename)
 
             with open(os.path.join(anno_path, filename), "r") as f:
                 lines = f.readlines()
@@ -36,7 +36,10 @@ for iscore in score_thresh_list:
             for line in lines:
                 box = line.strip().split(",")
                 assert(len(box) %2 == 0) ,'mismatch xy'
-                out_str = "{} {}".format(str(int(imagename[:])-1001), 0.999)
+                #raw_input()
+                out_str = "{} {}".format(str(int(imagename[:])), 0.999)
+                print(out_str)
+
                 for i in box:
                     out_str = out_str+' '+str(i)
                 f1.writelines(out_str + '\n')

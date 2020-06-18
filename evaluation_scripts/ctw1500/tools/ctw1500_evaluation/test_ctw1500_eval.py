@@ -16,9 +16,10 @@ from voc_eval_polygon import voc_eval_polygon
 
 detpath = 'evaluation_scripts/ctw1500/tools/ctw1500_evaluation/detections_{:s}.txt'
 
-annopath  = 'evaluation_scripts/ctw1500/data/ctw1500/test/test_label_curve.txt'
-imagesetfile = 'evaluation_scripts/ctw1500/data/ctw1500/test/test_label_curve.txt'
-
+annopath  = 'evaluation_scripts/ctw1500/data/ctw1500/test/test_label_curve_ic15.txt'
+imagesetfile = 'evaluation_scripts/ctw1500/data/ctw1500/test/test_label_curve_ic15.txt'
+# annopath  = 'db_gt/total_text/temp'
+# imagesetfile = 'db_gt/total_text/temp'
 score_thresh_list=[0.5]
 for isocre in score_thresh_list:
     rec, prec, ap = voc_eval_polygon(detpath[:-4]+str(isocre)+'.txt', annopath, imagesetfile, 'text', ovthresh=0.5)

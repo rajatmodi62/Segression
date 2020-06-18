@@ -29,7 +29,7 @@ parser.add_argument("--input-dir", type=str, default='results/TOTALTEXTgaussian_
 Input format: y0,x0, ..... yn,xn. Each detection is separated by the end of line token ('\n')'
 """
 args = parser.parse_args()
-
+input_dir= args.input_dir
 
 def Deteval(input_dir=None):
     input_dir=input_dir
@@ -331,3 +331,5 @@ def Deteval(input_dir=None):
     #dummy function call
     #print("invoked dummy function call")
 # Deteval(input_dir= 'results/TOTALTEXTgaussian_threshold=0.85_segmentation_threshold=0.99')
+print("calling deteval at",args.input_dir)
+Deteval(args.input_dir)

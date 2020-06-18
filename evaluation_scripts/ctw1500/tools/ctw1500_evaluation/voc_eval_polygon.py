@@ -5,6 +5,8 @@
 # Modified by yl
 # --------------------------------------------------------
 
+
+#PRATIK SIRS BRANCH
 import os
 import pickle as cPickle
 import numpy as np
@@ -36,11 +38,17 @@ def curve_parse_rec_txt(filename):
             obj_struct = {}
             obj_struct['name'] = 'text'
             obj_struct['difficult'] = 0
+            temp=[]
+            for i in range(len(cors)):
+                temp.append(int(cors[i]))
+            obj_struct['bbox'] = temp
+            '''
             obj_struct['bbox'] = [int(cors[0]), int(cors[1]),int(cors[2]),int(cors[3]),
                                   int(cors[4]), int(cors[5]),int(cors[6]),int(cors[7]),
                                   int(cors[8]), int(cors[9]),int(cors[10]),int(cors[11]),
                                   int(cors[12]), int(cors[13]),int(cors[14]),int(cors[15]),int(cors[16]), int(cors[17]),int(cors[18]),int(cors[19]),int(cors[20]), int(cors[21]),
                                   int(cors[22]), int(cors[23]),int(cors[24]),int(cors[25]),int(cors[26]), int(cors[27]),int(cors[28]),int(cors[29]),int(cors[30]), int(cors[31])]
+            '''
             objects.append(obj_struct)
     return objects
 
@@ -122,14 +130,23 @@ def voc_eval_polygon(detpath,
     class_recs = {}
     npos = 0
     for ix, imagename in enumerate(imagenames):
+        print("imagename",imagename)
+        #raw_input()
 
         R = [obj for obj in recs[imagename] if obj['name'] == classname] # text
         # assert(R), 'Can not find any object in '+ classname+' class.'
         if not R: continue
         bbox = np.array([x['bbox'] for x in R])
+        #print("bbox",type(bbox),type(bbox[0]),)
         difficult = np.array([x['difficult'] for x in R]).astype(np.bool)
         det = [False] * len(R)
         npos = npos + sum(~difficult)
+        print('=========>before rajat',imagename)
+
+        ix = imagename.split(os.sep)[-1][:-4]
+
+        print('=========>after rajat',imagename)
+        
         class_recs[str(ix)] = {'bbox': bbox,
                                 'difficult': difficult,
                                  'det': det}
@@ -138,9 +155,11 @@ def voc_eval_polygon(detpath,
     detfile = detpath.format(classname)
     with open(detfile, 'r') as f:
         lines = f.readlines()
+    #print('+++++++++++++++++++',detfile)
 
     splitlines = [x.strip().split(' ') for x in lines]
     image_ids = [x[0] for x in splitlines]
+    #print(image_ids)
     confidence = np.array([float(x[1]) for x in splitlines])
     BB = np.array([[float(z) for z in x[2:]] for x in splitlines])
     # sort by confidence
@@ -151,12 +170,16 @@ def voc_eval_polygon(detpath,
 
     # go down dets and mark TPs and FPs
     nd = len(image_ids)
+    print('nd ====>', len(image_ids))
     tp = np.zeros(nd)
     fp = np.zeros(nd)
+    print(len(class_recs.keys()))
+    print(class_recs.keys())
     for d in range(nd):
         if d%1000==0:
             print("eevaluating",d ,"out of",nd)
         R = class_recs[image_ids[d]]
+        #print(R)
         bb = BB[d] # mask rcnn
         det_bbox = bb[:]
         pts = [(det_bbox[j], det_bbox[j+1]) for j in xrange(0,len(bb),2)]
@@ -171,13 +194,19 @@ def voc_eval_polygon(detpath,
             continue
 
         ovmax = -np.inf
-        BBGT = R['bbox'].astype(float)
-        gt_bbox = BBGT[:, :4]
-        info_bbox_gt = BBGT[:, 4:32]
+        # BBGT = R['bbox'].astype(float)
+        # gt_bbox = BBGT[:, :4]
+        # info_bbox_gt = BBGT[:, 4:32]
         ls_pgt = []
-        overlaps = np.zeros(BBGT.shape[0])
-        for iix in xrange(BBGT.shape[0]):
-            pts = [(int(gt_bbox[iix, 0]) + info_bbox_gt[iix, j], int(gt_bbox[iix, 1]) + info_bbox_gt[iix, j+1]) for j in xrange(0,28,2)]
+        #print('hellllllllllllllllllllllllllllllllllllooooooooooooo', R['bbox'])
+        # overlaps = np.zeros(BBGT.shape[0])
+        overlaps = np.zeros(len(R['bbox']))
+        # for iix in xrange(BBGT.shape[0]):
+        for iix in range(len(R['bbox'])):
+            pts = np.asarray(R['bbox'][iix]).astype(float)
+            pts = pts.reshape(-1,2)
+            #print('oinnnnnnnnnnts', pts)
+            # pts = [(int(gt_bbox[iix, 0]) + info_bbox_gt[iix, j], int(gt_bbox[iix, 1]) + info_bbox_gt[iix, j+1]) for j in xrange(0,28,2)]
             pgt = Polygon(pts)
             if not pgt.is_valid:
                 print('GT polygon has intersecting sides.')

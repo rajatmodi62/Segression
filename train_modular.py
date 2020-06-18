@@ -81,6 +81,7 @@ def get_arguments():
                         help="train with contour edge loss: valid values : 'contour_edge', 'polygon_edge': 'contour_only'")
     parser.add_argument("--out-channels", type=int, default=32,
                         help="Save summaries and checkpoint every often.")
+
     return parser.parse_args()
 
 def create_snapshot_path(args):
@@ -238,9 +239,32 @@ def check_boundary_condition_and_modify(center_line_map,):
 
     return center_line_map, indices, flag
 
-
-
 binary_focal_loss=BinaryFocalLoss(alpha=[1.0, 0.25], gamma=2)
+
+def find_max_batch_size_tensor(attempt = 5000,max_allowed=5000 ):
+    print('find max size tensor')
+    set = get_train_loader_object(args.dataset)
+    loader = data.DataLoader(set, batch_size=args.batch_size, shuffle=True,num_workers=args.num_workers)
+    loader_iter = enumerate(loader)
+    _, batch = loader_iter.__next__()
+    max_value=0
+    for i in range(attempt):
+        try:
+            _, batch = loader_iter.__next__()
+        except:
+            loader_iter = enumerate(loader)
+            _, batch = loader_iter.__next__()
+        image, ground_truth,center_line_map,train_mask, tr_mask, tcl_mask, radius_map, sin_map, cos_map=batch
+        if torch.sum(center_line_map)<=max_allowed:
+        #      \
+        # and torch.sum(center_line_map)>=max_allowed-peterbation:
+            if max_value < torch.sum(center_line_map):
+                max_value = torch.sum(center_line_map)
+                best_batch=batch
+        print('i   ', i,'tawa garma karne do   ',max_value)
+    print('MAX NUMBER OF POINTS', max_value)
+    return best_batch, max_value
+
 def main():
     cudnn.enabled = True
     gpu = args.gpu
@@ -249,8 +273,8 @@ def main():
     model_save_dir = create_snapshot_path(args)
     if not os.path.exists(args.snapshot_dir):
         os.makedirs(args.snapshot_dir)
-
     if not os.path.exists(model_save_dir):
+
         os.makedirs(model_save_dir)
 
     model.train()
@@ -289,6 +313,11 @@ def main():
             _, batch = trainloader_iter.__next__()
 
         image, ground_truth,center_line_map,train_mask, tr_mask, tcl_mask, radius_map, sin_map, cos_map=batch
+        if i_iter == 0:
+            batch, max_value= find_max_batch_size_tensor(attempt = 500,max_allowed=5000 )
+            image, ground_truth,center_line_map,train_mask, tr_mask, tcl_mask, radius_map, sin_map, cos_map=batch
+        if torch.sum(center_line_map)>max_value:
+            continue
         img=image.to(device)
         center_line_map=center_line_map.to(device)
         center_line_map=center_line_map.unsqueeze(1)
@@ -298,7 +327,7 @@ def main():
         train_mask= train_mask.unsqueeze(1)
         compressed_ground_truth= compressed_ground_truth.unsqueeze(1)
 
-        contour_edge_ground_truth= ground_truth[2].to(device)
+        contour_edge_ground_truth= ground_truth[1].to(device)
 
 
         #model.switch_gaussian_label_map(center_line_map)
@@ -347,10 +376,10 @@ def main():
         #     train_mask.shape,\
         #     score_map.shape,\
         #     center_line_map)
-        #loss_score_map=centre_line_dice_loss(compressed_ground_truth,train_mask,score_map,center_line_map)
+        loss_score_map=centre_line_dice_loss(compressed_ground_truth,train_mask,score_map,center_line_map)
         #convert train mask to bool
         train_mask= train_mask.type(torch.bool)
-        loss_score_map= binary_focal_loss(score_map,center_line_map,train_mask)
+        # loss_score_map= binary_focal_loss(score_map,center_line_map,train_mask)
         loss_seg= score_map_loss_tolerance*loss_score_map
 
         #print("tst loss",loss_score_map)
