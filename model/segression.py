@@ -11,7 +11,7 @@ from model.segmentation_head import SegmentationHead
 #import prediction heads
 from model.prediction_head_1D import PredictionHead1D
 from model.prediction_head_2D import PredictionHead2D
-from model.prediction_head_3D import PredictionHead3D
+from model.prediction_head_3D_vectorized import PredictionHead3D
 
 #add edge detection
 from model.edge_detection import EdgeDetection
@@ -40,7 +40,7 @@ class Segression(nn.Module):
                  segression_dimension= 3,\
                  mode= 'train',\
                  center_line_segmentation_threshold= 0.7,\
-                 gaussian_segmentation_threshold = 0.85,\
+                 gaussian_segmentation_threshold = 0.4,\
                  epsilon= 1e-7,\
                  pretrained=True):
         super(Segression, self).__init__()

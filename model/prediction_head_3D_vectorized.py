@@ -14,7 +14,7 @@ def get_slice(total_indices,size_of_slice):
     for idx in range(no_of_slices-1):
       slice.append((idx*size_of_slice,(idx+1)*size_of_slice))
     slice.append(((no_of_slices-1)*size_of_slice,total_indices))
-
+  #print(slice)        
   return slice
 
 '''
@@ -125,11 +125,16 @@ class PredictionHead3D(nn.Module):
 
         #return gaussian
 
+    def holistic_gaussian_to_segmentation():
+
+        return 0;
+    def instance_gaussain_to_segmentation():
+
+        return 0
 
     def forward(self,\
                 variance_map=None,\
-                segmentation_map= None,size_of_slice=200):
-
+                segmentation_map= None,size_of_slice=200, type='holistic'):
 
         assert variance_map is not None,\
             "variance map is none"
@@ -139,11 +144,13 @@ class PredictionHead3D(nn.Module):
             "variance map should contain three channel only"
         assert segmentation_map.size()[1]==1,\
             "segmentation map should contain single channel only"
+        #print('VECTORIZED CODE=====================>')
 
         batch_size,_,_,_=segmentation_map.size()
 
         #stacked output of gaussian maps
         final_stacked_gaussian_map= []
+
 
         for i in range(batch_size):
 
@@ -160,82 +167,62 @@ class PredictionHead3D(nn.Module):
 
             batch_theta_map= 3.14*F.sigmoid(variance_map[i,2,:,:])
 
-            #list where the gaussians of current batch are pooled
-            batch_pooled_gaussians= []
             height,width= batch_variance_height.size()
 
             #gaussians will be drawn on non-zero variances return Px2 tensor.
-            batch_non_zero_variances= torch.nonzero(batch_segmentation_map)
-            #print("non zero size",batch_non_zero_variances.shape)
-            batch_no_of_non_zero_variances= batch_non_zero_variances.size()[0]
+            if type=='holistic':
+                #list where the gaussians of current batch are pooled
+                batch_pooled_gaussians= []
+                batch_non_zero_variances= torch.nonzero(batch_segmentation_map)
+                batch_no_of_non_zero_variances= batch_non_zero_variances.size()[0]
 
-            #VECTORIZE THIS CODE LATER
+                #VECTORIZE THIS CODE LATER
+                # coordinate_x ==> Px1x1  ==> PxHxW
+                # coordinate_y ==> Px1x1  ==> PxHxW
+                # variance   ==> Px1x1    ==> PxHxW
+                x_coordinate = batch_non_zero_variances[:,0]  #P
+                y_coordinate = batch_non_zero_variances[:,1]  #P
+                variance_height =   batch_variance_height[x_coordinate, y_coordinate] #P
+                variance_width =   batch_variance_width[x_coordinate, y_coordinate] #P
+                theta_map =   batch_theta_map[x_coordinate, y_coordinate] #P
 
-            # coordinate_x ==> Px1x1  ==> PxHxW
-            # coordinate_y ==> Px1x1  ==> PxHxW
-            # variance   ==> Px1x1    ==> PxHxW
-            x_coordinate = batch_non_zero_variances[:,0]  #P
-            y_coordinate = batch_non_zero_variances[:,1]  #P
-            variance_height =   batch_variance_height[x_coordinate, y_coordinate] #P
-            variance_width =   batch_variance_width[x_coordinate, y_coordinate] #P
-            theta_map =   batch_theta_map[x_coordinate, y_coordinate] #P
+                slice_list = get_slice(batch_no_of_non_zero_variances,size_of_slice)
+                sliced_gaussian_map=[]
+                for index in range(len(slice_list)):
+                    slice = slice_list[index]
+                    slice_length=slice[1]-slice[0]
+                    X_Coordinate = x_coordinate[slice[0]:slice[1]].view(slice_length,1,1).repeat(1,height,width)
+                    Y_Coordinate = y_coordinate[slice[0]:slice[1]].view(slice_length,1,1).repeat(1,height,width)
+                    Variance_Height = variance_height[slice[0]:slice[1]].view(slice_length,1,1).repeat(1,height,width)
+                    Variance_Width = variance_width[slice[0]:slice[1]].view(slice_length,1,1).repeat(1,height,width)
+                    Theta_Map = theta_map[slice[0]:slice[1]].view(slice_length,1,1).repeat(1,height,width)
 
-            slice_list = get_slice(batch_no_of_non_zero_variances,size_of_slice)
-            sliced_gaussian_map=[]
-            for index in range(len(slice_list)):
-                slice = slice_list[index]
-                slice_length=slice[1]-slice[0]
-                #print(slice_length, slice_list[index], x_coordinate.shape)
-                #print("type ",x_coordinate.dtype,y_coordinate.dtype,variance.dtype)
-                X_Coordinate = x_coordinate[slice[0]:slice[1]].view(slice_length,1,1).repeat(1,height,width)
-                Y_Coordinate = y_coordinate[slice[0]:slice[1]].view(slice_length,1,1).repeat(1,height,width)
-                Variance_Height = variance_height[slice[0]:slice[1]].view(slice_length,1,1).repeat(1,height,width)
-                Variance_Width = variance_width[slice[0]:slice[1]].view(slice_length,1,1).repeat(1,height,width)
-                Theta_Map = theta_map[slice[0]:slice[1]].view(slice_length,1,1).repeat(1,height,width)
+                    batch_pooled_gaussians= self.create_gaussian_3D(Variance_Height,\
+                                            Variance_Width,\
+                                            Theta_Map,\
+                                            X_Coordinate.float(),\
+                                            Y_Coordinate.float(),\
+                                            height,\
+                                            width, slice_length)
+                    sliced_gaussian_map.append(batch_pooled_gaussians)
+                    del batch_pooled_gaussians
 
-                batch_pooled_gaussians= self.create_gaussian_3D(Variance_Height,\
-                                        Variance_Width,\
-                                        Theta_Map,\
-                                        X_Coordinate.float(),\
-                                        Y_Coordinate.float(),\
-                                        height,\
-                                        width, slice_length)
-                sliced_gaussian_map.append(batch_pooled_gaussians)
+                batch_pooled_gaussians=torch.stack(sliced_gaussian_map,0)
+                batch_pooled_gaussians=torch.max(batch_pooled_gaussians,0).values
+                #print("batch pooled gaussians",batch_pooled_gaussians.shape)
+                # plt.imshow(batch_pooled_gaussians)
+                # plt.show()
+                #Gaussian thresholding
+                batch_pooled_gaussians=(batch_pooled_gaussians>=self.gaussian_segmentation_threshold).float()*batch_pooled_gaussians
+
+                #Unsqueeze to add channel dimension,
+                #[1,H,W]
+                batch_pooled_gaussians=batch_pooled_gaussians.unsqueeze(0)
+                final_stacked_gaussian_map.append(batch_pooled_gaussians)
                 del batch_pooled_gaussians
-
-            # #print("type ",x_coordinate.dtype,y_coordinate.dtype,variance.dtype)
-            # x_coordinate = x_coordinate.view(batch_no_of_non_zero_variances,1,1).repeat(1,height,width)
-            # y_coordinate = y_coordinate.view(batch_no_of_non_zero_variances,1,1).repeat(1,height,width)
-            # variance_height = variance_height.view(batch_no_of_non_zero_variances,1,1).repeat(1,height,width)
-            # variance_width = variance_width.view(batch_no_of_non_zero_variances,1,1).repeat(1,height,width)
-            # theta_map = theta_map.view(batch_no_of_non_zero_variances,1,1).repeat(1,height,width)
-            #
-            #
-            # batch_pooled_gaussians= self.create_gaussian_3D(variance_height,\
-            #                         variance_width,\
-            #                         theta_map,\
-            #                         x_coordinate.float(),\
-            #                         y_coordinate.float(),\
-            #                         height,\
-            #                         width, batch_no_of_non_zero_variances)
-
-            #All gaussians are drawn now.
-            #Take max along channel
-            batch_pooled_gaussians=torch.stack(sliced_gaussian_map,0)
-            batch_pooled_gaussians=torch.max(batch_pooled_gaussians,0).values
-            #print("batch pooled gaussians",batch_pooled_gaussians.shape)
-            # plt.imshow(batch_pooled_gaussians)
-            # plt.show()
-            #Gaussian thresholding
-            batch_pooled_gaussians=(batch_pooled_gaussians>=self.gaussian_segmentation_threshold).float()*batch_pooled_gaussians
-
-            #Unsqueeze to add channel dimension,
-            #[1,H,W]
-            batch_pooled_gaussians=batch_pooled_gaussians.unsqueeze(0)
-            final_stacked_gaussian_map.append(batch_pooled_gaussians)
-            del batch_pooled_gaussians
         #Stack Individual outputs along Common Batch dimension
         final_stacked_gaussian_map= torch.stack(final_stacked_gaussian_map,0)
+
         #print("shape of final map",final_stacked_gaussian_map.shape)
         return final_stacked_gaussian_map
 
