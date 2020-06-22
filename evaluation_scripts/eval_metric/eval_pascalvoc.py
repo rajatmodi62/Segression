@@ -30,7 +30,7 @@ def files_with_extension(path, ext):
 	return file_list
 
 def create_dictionary_for_gt(filename, type='quad'):
-	
+
 	gt= defaultdict(dict)
 	with open(filename) as f:
 		content = f.readlines()
@@ -48,10 +48,10 @@ def create_dictionary_for_gt(filename, type='quad'):
 			tag=False
 			if text =='###':
 				tag=True
-			
+
 		gt[index]['points']=coord
 		gt[index]['text']=text
-		gt[index]['ignore']= tag		
+		gt[index]['ignore']= tag
 	return gt
 
 def create_dictionary_for_pred(filename, type='with_confidence'):
@@ -76,14 +76,15 @@ def create_dictionary_for_pred(filename, type='with_confidence'):
 def main():
 	args = get_arguments()
 	evaluator = DetectionIoUEvaluator()
-	gt_path=args.groundtruth_dir 
+	gt_path=args.groundtruth_dir
 	pred_path=args.prediction_dir
-	gaussian_threshold = pred_path.split(os.sep)[-1].split('_')[1].split("=")[-1]
+	gaussian_threshold = "0.5"#pred_path.split(os.sep)[-1].split('_')[1].split("=")[-1]
 	today = date.today()
 	print("========================================================\n\
 DATE=",today)
-	segmentation_threshold = pred_path.split(os.sep)[-1].split('_')[-1].split("=")[-1]
-	
+	print(pred_path, gt_path)
+	segmentation_threshold = "0.5"#pred_path.split(os.sep)[-1].split('_')[-1].split("=")[-1]
+
 	file_list_gt = files_with_extension(gt_path, '.txt')
 	raw_metric=[]
 	print("SEGMENTATION_THRESHOLD="+segmentation_threshold+" \n\
@@ -91,15 +92,15 @@ GAUSSIAN THRESHOLD ="+ gaussian_threshold+" \n\
 multiscale :"+args.scaling_list+" \n\
 ========================================================\n")
 	for i,file_gt in enumerate(file_list_gt):
-		print('filename ', file_gt, i,len(file_list_gt))	
+		print('filename ', file_gt, i,len(file_list_gt))
 		file_pred = os.path.join(pred_path,'res'+file_gt.split(os.sep)[-1][2:])
 		gt = create_dictionary_for_gt(file_gt, type='poly')
-		pred = create_dictionary_for_pred(file_pred,type='without_confidence')		
+		pred = create_dictionary_for_pred(file_pred,type='without_confidence')
 		results = []
 		metric = evaluator.evaluate_image(gt, pred)
 		print('Precision:', metric['precision'],'Recall', metric['recall'],'hmean', metric['hmean'])
 		raw_metric.append(metric)
-	result = evaluator.combine_results(raw_metric)	
+	result = evaluator.combine_results(raw_metric)
 	print(result)
 
 if __name__=='__main__':

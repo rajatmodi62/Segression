@@ -34,7 +34,7 @@ class EvalOutputs():
         #strip image_id and save as txt
         image_id= image_id.split('.')[0]+'.txt'
         print('============>IMAGE ID',image_id)
-        pred_path= str(self.dataset_dir/image_id)
+        pred_path= str(self.dataset_dir/('res_'+image_id))
         fid = open(pred_path, 'a')
         content=''
 
@@ -79,7 +79,7 @@ class EvalOutputs():
 
         elif self.dataset=='TOTALTEXT':
 
-            self.generate_x_y_output(contour_list,image_id,swap=True)
+            self.generate_x_y_output(contour_list,image_id,swap=False)
             # write command for executing the evaluation script
             #os.system('python Deteval.py ')
 

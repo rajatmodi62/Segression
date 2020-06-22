@@ -168,7 +168,7 @@ def parse_ground_truth(filename, dataset):
 
 def parse_prediction_file(filename):
     predictions=[]
-    prediction_file_path = os.path.join(args.pred_dir,filename+'.txt' )
+    prediction_file_path = os.path.join(args.pred_dir,'res_'+filename+'.txt' )
     f= open(prediction_file_path, 'r')
     lines= f.readlines()
     f.close()
@@ -180,15 +180,16 @@ def parse_prediction_file(filename):
             coord.append(int(line[index]))
         coord = np.asarray(coord)
         coord=coord.reshape(-1,2)
-        if args.dataset=='TOTALTEXT':
-            coord_swap=np.zeros(coord.shape)
-            coord_swap[:,0]=coord[:,1]
-            coord_swap[:,1]=coord[:,0]
-            coord_swap=coord_swap.astype(int)
-            #print(coord.shape, coord_swap.shape)
-            predictions.append(coord_swap)
-        else:
-            predictions.append(coord)
+        # if args.dataset=='TOTALTEXT':
+        #     coord_swap=np.zeros(coord.shape)
+        #     coord_swap[:,0]=coord[:,1]
+        #     coord_swap[:,1]=coord[:,0]
+        #     coord_swap=coord_swap.astype(int)
+        #     #print(coord.shape, coord_swap.shape)
+        #     predictions.append(coord_swap)
+        # else:
+        #     predictions.append(coord)
+        predictions.append(coord)
     return predictions
 
 def dump_visualization(image_path, gt, predictions):
@@ -229,6 +230,7 @@ gt_dir =os.path.join(dir_root, 'gt/Test')
 dataset= load_dataset_images(image_dir)
 for i,image_file_name in enumerate(dataset):
     filename = image_file_name.split(os.sep)[-1].split('.')[0]
+    print("fffff",filename)
     ground_truth_annotation = parse_ground_truth(filename,\
                               dataset=args.dataset)
     #print(ground_truth_annotation)
