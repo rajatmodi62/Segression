@@ -28,7 +28,7 @@ from dataset.synth_text import SynthText
 from model.segression import Segression
 from util.augmentation import BaseTransform, Augmentation
 from loss import *
-from model.edge_detection import EdgeDetection
+#from model.edge_detection import EdgeDetection
 from loss import BinaryFocalLoss
 
 
@@ -77,8 +77,8 @@ def get_arguments():
                         help="Iteration to start from if training interrupted")
     parser.add_argument("--backbone", type=str, default="VGG",
                         help="Enter the Backbone of the model BACKBONE/RESNEST")
-    parser.add_argument("--train-category", type=str, default="contour_edge",
-                        help="train with contour edge loss: valid values : 'contour_edge', 'polygon_edge': 'contour_only'")
+    parser.add_argument("--train-category", type=str, default="attention",
+                        help="train with attention mechanism : 'attention', 'without_attention' ")
     parser.add_argument("--out-channels", type=int, default=32,
                         help="Save summaries and checkpoint every often.")
 
@@ -130,18 +130,9 @@ def visualization(visual_list ):
     viz.image(
         (visual_list[5].detach().cpu().numpy()),
         win="changed_variance_map",
-        opts=dict(title='TotalText Dataset', caption='Gaussian Variance Map  conditioning Segmentation Branch'),
+        opts=dict(title='TotalText Dataset', caption='Variance attention'),
     )
-    viz.image(
-        (visual_list[6].detach().cpu().numpy()),
-        win="contour_edge_map",
-        opts=dict(title='TotalText Dataset', caption='contour edge ground truth'),
-    )
-    viz.image(
-        (visual_list[7][0].detach().cpu().numpy()),
-        win="pred_sobel_map",
-        opts=dict(title='TotalText Dataset', caption='predicted sobel edge map'),
-    )
+
 
 
 def get_train_loader_object(dataset):
@@ -201,9 +192,10 @@ def load_model(args,device=torch.device("cuda:0" if torch.cuda.is_available() el
     model=Segression(center_line_segmentation_threshold=0.999,\
                     backbone=args.backbone,\
                     segression_dimension= 3,\
+                    attention=False,\
                     out_channels=args.out_channels).to(device)
     if args.checkpoint!="":
-        model.load_state_dict(torch.load(args.checkpoint,map_location=device),strict=True)
+        model.load_state_dict(torch.load(args.checkpoint,map_location=device),strict=False)
         print("loaded checkpoint at ",args.checkpoint)
     return model
 
@@ -278,7 +270,7 @@ def main():
         os.makedirs(model_save_dir)
 
     model.train()
-    edge_ = EdgeDetection().to(device)
+    #edge_ = EdgeDetection().to(device)
 
     #Define the training superset
 
@@ -303,6 +295,11 @@ def main():
     while 1:
         if i_iter>args.num_steps:
             break
+        if i_iter<iteration_to_start_from:
+            if i_iter%1000==0:
+                print("skipping till ",i_iter,iteration_to_start_from)
+            i_iter+=1
+            continue
         loss_seg_value = 0
         optimizer.zero_grad()
         adjust_learning_rate(optimizer, i_iter)
@@ -313,7 +310,7 @@ def main():
             _, batch = trainloader_iter.__next__()
 
         image, ground_truth,center_line_map,train_mask, tr_mask, tcl_mask, radius_map, sin_map, cos_map=batch
-        if i_iter == 0:
+        if i_iter == 0 or i_iter==iteration_to_start_from:
             batch, max_value= find_max_batch_size_tensor(attempt = 500,max_allowed=5000 )
             image, ground_truth,center_line_map,train_mask, tr_mask, tcl_mask, radius_map, sin_map, cos_map=batch
         if torch.sum(center_line_map)>max_value:
@@ -338,10 +335,9 @@ def main():
         #print('number of pixels', max_value,torch.sum(center_line_map))
         #print('unique elements in input center_line',torch.unique(center_line_map))
 
-        contour_map,score_map, variance_map=model(img, segmentation_map=center_line_map)
+        contour_map,score_map, variance_map,meta= model(img, segmentation_map=center_line_map)
+
         #print('HHHHHOOOOOOOOOOOOOOOOOOOOOOOOOOO', contour_map.shape)
-        if args.train_category=='contour_edge':
-            sobel_edge=edge_(contour_map).detach()
             #print("in train soooooovel",sobel_edge.dtype)
         #print(contour_map)
         '''
@@ -393,22 +389,26 @@ def main():
 
             contour_map = contour_map[indices,...]
             train_mask = train_mask[indices,...]
+            variance_map = variance_map[indices,...]
             compressed_ground_truth=compressed_ground_truth[indices,...]
             loss_contour_map = loss_dice(train_mask,contour_map,compressed_ground_truth)
             #loss_contour_map=binary_focal_loss(contour_map,compressed_ground_truth,train_mask)
             #print("====================loss contour map",loss_contour_map)
-            if args.train_category=='contour_edge':
+            if args.train_category=='attention':
+                variance_loss_tolerance= 0
+                loss_variance = loss_mse(variance_map,compressed_ground_truth, train_mask)*variance_loss_tolerance
+
                 #loss_edge_map=centre_line_dice_loss(contour_edge_ground_truth,train_mask,sobel_edge,contour_edge_ground_truth)
                 # print('________________________________>>>>>>>>>>>>>>>>>>')
                 # print('train mask ====>', train_mask)
                 # print('contour edge gt ===>>', contour_edge_ground_truth)
                 # print('--------->')
                 #loss_edge_map = loss_dice(train_mask,sobel_edge,contour_edge_ground_truth)
-                loss_edge_map= binary_focal_loss(sobel_edge,contour_edge_ground_truth,train_mask)
+                #loss_edge_map= binary_focal_loss(sobel_edge,contour_edge_ground_truth,train_mask)
                 # print('uuuuuuuuuuuuuuuuuuuuuuuu ========>', loss_contour_map, loss_seg,loss_edge_map)
                 #, loss_edge_map,
                 #print('loss 2', loss_contour_map)
-                loss_seg = loss_seg+contour_loss_tolerance*(loss_contour_map+loss_edge_map)
+                loss_seg = loss_seg+contour_loss_tolerance*(loss_contour_map)+loss_variance
             else:
                 loss_seg = loss_seg+contour_loss_tolerance*(loss_contour_map)
 
@@ -438,7 +438,8 @@ def main():
             #print(img[0].shape,compressed_ground_truth[0,...].shape,contour_map[0].shape,score_map[0].shape,center_line_map[0].shape, variance_map[0].shape)
 
             visual_list = [img[0],compressed_ground_truth[0,...],contour_map[0],score_map[0],\
-            center_line_map[0], variance_map[0], contour_edge_ground_truth[0],sobel_edge[0]]
+            center_line_map[0], center_line_map[0]]#meta['variance_attention'][0,...]]
+            #print(meta['variance_attention'].shape)
             visualization(visual_list )
 
         if i_iter%10==0 :
@@ -455,7 +456,7 @@ def main():
                     pass
             print("len of tensors",len)
             print("backbrop counter",i_iter)
-            print('iter = {0:8d}/{1:8d}, loss_seg = {2:.3f}, loss_gaussian_branch = {3:.3f}, loss_segmentation_branch = {4:.3f}, loss_edge_map= {5:.3f}'.format(i_iter, args.num_steps, loss_seg,loss_contour_map,loss_score_map,loss_edge_map))
+            print('iter = {0:8d}/{1:8d}, loss_seg = {2:.3f}, loss_gaussian_branch = {3:.3f}, loss_segmentation_branch = {4:.3f}, loss_edge_map= {5:.3f}'.format(i_iter, args.num_steps, loss_seg,loss_contour_map,loss_score_map,loss_variance))
 
 
         if i_iter >= args.num_steps-1:
@@ -469,7 +470,7 @@ def main():
         del score_map,contour_map,variance_map, image, compressed_ground_truth,center_line_map,train_mask, tr_mask, tcl_mask, radius_map, sin_map, cos_map
         del loss_seg,loss_score_map
         if  flag:
-            del loss_contour_map
+            del loss_contour_map, loss_variance
     end = timeit.default_timer()
     print (end-start,'seconds')
 

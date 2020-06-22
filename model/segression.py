@@ -40,9 +40,11 @@ class Segression(nn.Module):
                  segression_dimension= 3,\
                  mode= 'train',\
                  center_line_segmentation_threshold= 0.7,\
-                 gaussian_segmentation_threshold = 0.4,\
+                 gaussian_segmentation_threshold = 0.7,\
                  epsilon= 1e-7,\
-                 pretrained=True):
+                 pretrained=True,\
+                 attention=False,\
+                 attention_threshold= 2):
         super(Segression, self).__init__()
 
         #store parameters.
@@ -50,6 +52,8 @@ class Segression(nn.Module):
         self.in_channels= in_channels
         self.out_channels= out_channels
         self.mode= mode
+        self.attention= attention
+        self.attention_threshold= attention_threshold
         #initialize backbone
         if backbone =='VGG':
             self.backbone= VGGWrapper(in_channels=in_channels,\
@@ -83,7 +87,7 @@ class Segression(nn.Module):
         ########################################################################
         #initialize segmentation_head
         #Note: in_channel=out_channel since it's plugged in front of backbone.
-        self.segmentation_head= SegmentationHead(in_channels= out_channels)
+        self.segmentation_head= SegmentationHead(in_channels= out_channels+2)
         ########################################################################
 
 
@@ -115,6 +119,7 @@ class Segression(nn.Module):
         self.variance_conv= nn.Conv2d(out_channels, segression_dimension, 1)
 
 
+        #######################################################################
         ########################################################################
         #self.edge_detection= EdgeDetection()
 
@@ -145,8 +150,24 @@ class Segression(nn.Module):
         #compute variance map
         variance= self.variance_conv(x)
 
+        #attention based module
+        ########################################################################
+        if self.attention:
+            variance_x= F.relu(variance[:,0,:,:])+1
+            variance_y= F.relu(variance[ :,1,:,:])+1
+            sum = variance_x+ variance_y
+            # print('max value ', torch.max(sum))
+            variance_attention= torch.gt(sum,self.attention_threshold)*1.0
+            # print(torch.unique(variance_attention))
+            #variance_attention = variance_attention.unsqueeze(1).repeat(1,x.shape[1],1,1)
+            x= x*variance_attention.unsqueeze(1)
+        x = torch.cat([F.relu(variance[:,0:2,...])+1, x], dim=1)
+
+        ########################################################################
+
         #compute center line segmentation
         center_line_segmentation= self.segmentation_head(x)
+
 
 
         #if mode is train, segmentation map used to create gaussians
@@ -168,7 +189,14 @@ class Segression(nn.Module):
 
             #edge= self.edge_detection(gaussian_segmentation)
             #print("==========fwd pass done")
-            return gaussian_segmentation,center_line_segmentation, variance
+            meta = {
+                'variance_attention':1
+            }
+            if self.attention:
+                meta['variance_attention']= variance_attention
+
+            return gaussian_segmentation,center_line_segmentation, variance,meta
+
 
 
         elif self.mode== 'test':

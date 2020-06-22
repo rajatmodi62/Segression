@@ -1,6 +1,48 @@
 import torch
 import torch.nn as nn
 import numpy as np
+import torch.nn.functional as F
+
+
+def MSELoss(prediction, target):
+    mse = torch.mean((prediction-target)**2)
+    return mse
+
+def loss_mse(variance_map,compressed_ground_truth, train_mask):
+    # manage the size issue
+    variance_map = variance_map.squeeze()
+    compressed_ground_truth = compressed_ground_truth.squeeze()
+    train_mask = train_mask.squeeze()
+    if len(variance_map.shape)==3:
+        variance_map = variance_map.unsqueeze(0)
+        compressed_ground_truth = compressed_ground_truth.unsqueeze(0)
+        train_mask = train_mask.unsqueeze(0)
+
+
+    variance_x =variance_map[:,0,...]
+    # print('hello',variance_x.shape, variance_map.shape)
+    variance_y = variance_map[:,1,...]
+    # print('hello y', variance_y)
+    # print("size",variance_map.size(),\
+    #     variance_x.size(),\
+    #     variance_y.size(),\
+    #     compressed_ground_truth.size(),\
+    #     train_mask.size())
+    train_mask = torch.gt(compressed_ground_truth+(1-train_mask*1.0),0)*1.0
+    #mask in non text region are 1
+    train_mask = 1- train_mask
+    # print(train_mask)
+    train_mask= torch.gt(train_mask,0)
+    # print(train_mask)
+    gt = torch.masked_select(compressed_ground_truth, train_mask)
+    #print(torch.unique(gt))
+    variance_x = torch.masked_select(variance_x, train_mask)
+    variance_y = torch.masked_select(variance_y, train_mask)
+    # print('variance x ', variance_x.shape, 'gt', gt.shape)
+    loss_variance_x =  MSELoss(F.relu(variance_x), gt)
+    loss_variance_y = MSELoss(F.relu(variance_y), gt)
+    loss_variance = (loss_variance_x+loss_variance_y)/2
+    return loss_variance
 
 def loss_dice(dont_care_mask,probas,true_1_hot,eps=1e-7):
     #print('Gaussian branch max values ====>', torch.max(probas))

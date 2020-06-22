@@ -126,7 +126,9 @@ def voc_eval_polygon(detpath,
         R = [obj for obj in recs[imagename] if obj['name'] == classname] # text
         # assert(R), 'Can not find any object in '+ classname+' class.'
         if not R: continue
+        #print("R",len(R),type(R[0]),R[0])
         bbox = np.array([x['bbox'] for x in R])
+        print("bbox",bbox.shape,bbox[0].shape)
         difficult = np.array([x['difficult'] for x in R]).astype(np.bool)
         det = [False] * len(R)
         npos = npos + sum(~difficult)
@@ -171,8 +173,11 @@ def voc_eval_polygon(detpath,
             continue
 
         ovmax = -np.inf
+        print("rajat",R['bbox'].shape)
         BBGT = R['bbox'].astype(float)
+        #take the first 4 corrdinates of a bbox
         gt_bbox = BBGT[:, :4]
+        print("gt_bbox",BBGT[:,:4].shape)
         info_bbox_gt = BBGT[:, 4:32]
         ls_pgt = []
         overlaps = np.zeros(BBGT.shape[0])

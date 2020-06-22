@@ -9,15 +9,20 @@ Function: Performs segmentation on input feature map.
 
 '''
 class SegmentationHead(nn.Module):
-    def __init__(self,in_channels=32):
+    def __init__(self,in_channels=32+2):
 
         super(SegmentationHead, self).__init__()
         #convolution for segmentation.
-        self.segmentation_conv= nn.Conv2d(in_channels, 1, 1)
+        self.conv1= nn.Conv2d(in_channels,in_channels, 3, padding=1)
+        self.bn1 = nn.BatchNorm2d(in_channels)
+        self.conv2= nn.Conv2d(in_channels,1, 1)
 
     def forward(self, x):
-
-        x= F.sigmoid(self.segmentation_conv(x))
+        #print('helloxyz',x.shape)
+        x= self.conv1(x)
+        x= F.relu(self.bn1(x))
+        x= F.sigmoid(self.conv2(x))
+        #x= F.sigmoid(self.conv1(x))
         return x
 
 if __name__ == '__main__':
