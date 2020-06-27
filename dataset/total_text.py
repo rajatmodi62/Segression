@@ -131,6 +131,6 @@ if __name__ == '__main__':
     # img, train_mask, tr_mask, tcl_mask, radius_map, sin_map, cos_map, meta = trainset[944]
 
     for idx in range(0, 10):
-        image, compressed_ground_truth,center_line_map,train_mask, tr_mask, tcl_mask, radius_map, sin_map, cos_map, meta,_ = trainset[idx]
+        trainset[idx]
         print("done!!")
         #print(type(img),img.shape,train_mask.shape,center_line_map.shape)
