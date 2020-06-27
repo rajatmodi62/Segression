@@ -63,7 +63,22 @@ def loss_dice(dont_care_mask,probas,true_1_hot,eps=1e-7):
     # print(" ======================================= bada admin      ", true_1_hot)
     return loss
 
-def centre_line_dice_loss(original_contour_mask,dont_care_mask,pred_center_line,gt_center_line):
+def centre_line_dice_loss(dont_care_mask,pred_center_line,gt_center_line, border_weight):
+    dont_care_mask = dont_care_mask.squeeze()
+    pred_center_line = pred_center_line.squeeze()
+    gt_center_line = gt_center_line.squeeze()
+    #border_weight = border_weight.squeeze()
+    if len(pred_center_line.shape)==3:
+        pred_center_line = pred_center_line.unsqueeze(0)
+        dont_care_mask = dont_care_mask.unsqueeze(0)
+        gt_center_line = gt_center_line.unsqueeze(0)
+        #border_weight = border_weight.unsqueeze(8)
+
+
+    pred_center_line = F.interpolate(pred_center_line, mode='nearest', scale_factor=4)
+    dont_care_mask=   F.interpolate(dont_care_mask*1.0, mode='nearest', scale_factor=4)
+
+
 
     #gt_mask= (original_contour_mask*dont_care_mask==1)
     gt_mask= (dont_care_mask==1)
@@ -91,6 +106,23 @@ def centre_line_dice_loss(original_contour_mask,dont_care_mask,pred_center_line,
     #print(" ======================================> PATA CHALA !!!f ",loss, cardinality)
     #print(" ======================================= bada admin      ", true_1_hot)
     #print(" f ",loss)
+    return loss
+
+def multiclass_dice_loss(three_class_gt,dont_care_mask,pred):
+
+    # # manage the size issue
+    # variance_map = variance_map.squeeze()
+    # compressed_ground_truth = compressed_ground_truth.squeeze()
+    # train_mask = train_mask.squeeze()
+    # if len(variance_map.shape)==3:
+    #     variance_map = variance_map.unsqueeze(0)
+    #     compressed_ground_truth = compressed_ground_truth.unsqueeze(0)
+    #     train_mask = train_mask.unsqueeze(0)
+
+    loss1 = centre_line_dice_loss(dont_care_mask,pred[:,0,...],three_class_gt[:,0,...])
+    loss2 = centre_line_dice_loss(dont_care_mask,pred[:,1,...],three_class_gt[:,1,...])
+    loss3 = centre_line_dice_loss(dont_care_mask,pred[:,2,...],three_class_gt[:,2,...])
+    loss = (loss1+loss2+loss3)/3.0
     return loss
 
 def loss_calc(pred, label, gpu):

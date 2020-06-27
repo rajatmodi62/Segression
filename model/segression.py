@@ -38,6 +38,7 @@ class Segression(nn.Module):
                  out_channels=32,\
                  backbone='VGG',\
                  segression_dimension= 3,\
+                 n_classes=1,\
                  mode= 'train',\
                  center_line_segmentation_threshold= 0.7,\
                  gaussian_segmentation_threshold = 0.7,\
@@ -54,6 +55,7 @@ class Segression(nn.Module):
         self.mode= mode
         self.attention= attention
         self.attention_threshold= attention_threshold
+        self.n_classes = n_classes
         #initialize backbone
         if backbone =='VGG':
             self.backbone= VGGWrapper(in_channels=in_channels,\
@@ -87,7 +89,7 @@ class Segression(nn.Module):
         ########################################################################
         #initialize segmentation_head
         #Note: in_channel=out_channel since it's plugged in front of backbone.
-        self.segmentation_head= SegmentationHead(in_channels= out_channels+2)
+        self.segmentation_head_1= SegmentationHead(in_channels= out_channels+2, n_classes= self.n_classes)
         ########################################################################
 
 
@@ -166,7 +168,7 @@ class Segression(nn.Module):
         ########################################################################
 
         #compute center line segmentation
-        center_line_segmentation= self.segmentation_head(x)
+        center_line_segmentation= self.segmentation_head_1(x)
 
 
 

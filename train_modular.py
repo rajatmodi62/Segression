@@ -30,6 +30,7 @@ from util.augmentation import BaseTransform, Augmentation
 from loss import *
 #from model.edge_detection import EdgeDetection
 from loss import BinaryFocalLoss
+from collections import defaultdict
 
 
 
@@ -102,36 +103,71 @@ def adjust_learning_rate(optimizer, i_iter):
         optimizer.param_groups[1]['lr'] = lr * 10
 
 def visualization(visual_list ):
-    viz.image(
-        visual_list[0],
-        win="real_image",
-        opts=dict(title='TotalText Dataset', caption='Real Image'),
-    )
-    viz.image(
-        visual_list[1]*100,
-        win="ground_truth",
-        opts=dict(title='TotalText Dataset', caption='Ground Truth for Gaussian Branch'),
-    )
-    viz.image(
-        visual_list[2].detach().cpu().numpy()*100,
-        win="contour_map",
-        opts=dict(title='TotalText Dataset', caption='Contour Prediction from Gaussian Branch'),
-    )
-    viz.image(
-        visual_list[3],
-        win="score_map",
-        opts=dict(title='TotalText Dataset', caption='Prediction for Segmentation Branch'),
-    )
-    viz.image(
-        (visual_list[4]),
-        win="center_line_map",
-        opts=dict(title='TotalText Dataset', caption='Ground Truth for Segmentation Branch'),
-    )
-    viz.image(
-        (visual_list[5].detach().cpu().numpy()),
-        win="changed_variance_map",
-        opts=dict(title='TotalText Dataset', caption='Variance attention'),
-    )
+
+    for index in range(len(visual_list)):
+        viz.image(
+            visual_list[index][0],
+            win=visual_list[index][1],
+            opts=dict(title='TotalText Dataset', caption=visual_list[index][2]),
+        )
+
+    #
+    # viz.image(
+    #     visual_list[1]*100,
+    #     win="ground_truth",
+    #     opts=dict(title='TotalText Dataset', caption='Ground Truth for Gaussian Branch'),
+    # )
+    #
+    # viz.image(
+    #     visual_list[2].detach().cpu().numpy()*100,
+    #     win="contour_map",
+    #     opts=dict(title='TotalText Dataset', caption='Contour Prediction from Gaussian Branch'),
+    # )
+    #
+    # viz.image(
+    #     visual_list[3],
+    #     win="score_map",
+    #     opts=dict(title='TotalText Dataset', caption='Prediction for Segmentation Branch'),
+    # )
+    # viz.image(
+    #     visual_list[4],
+    #     opts=dict(title='TotalText Dataset', caption='ground truth cetner line '),
+    #     win="cneter line ",
+    # )
+    #
+
+    # viz.image(
+    # (visual_list[3][0]),
+    # win="pred_non_text",
+    # opts=dict(title='TotalText Dataset', caption='Predcition Non Text'),
+    # )
+    # viz.image(
+    # (visual_list[3][1]),
+    # win="pred_border",
+    # opts=dict(title='TotalText Dataset', caption='Predcition boundary pixels'),
+    # )
+    # viz.image(
+    # (visual_list[3][2]),
+    # win="pred_text",
+    # opts=dict(title='TotalText Dataset', caption='Predcition Text Regions'),
+    # )
+    #
+    # viz.image(
+    #     (visual_list[4][0]*100),
+    #     win="gt_non_text",
+    #     opts=dict(title='TotalText Dataset', caption='GT Non Text'),
+    # )
+    # viz.image(
+    #     (visual_list[4][1]*100),
+    #     win="gt_border",
+    #     opts=dict(title='TotalText Dataset', caption='GT boundary pixels'),
+    # )
+    # viz.image(
+    #     (visual_list[4][2]*100),
+    #     win="gt_text",
+    #     opts=dict(title='TotalText Dataset', caption='GT Text Regions'),
+    # )
+
 
 
 
@@ -192,6 +228,7 @@ def load_model(args,device=torch.device("cuda:0" if torch.cuda.is_available() el
     model=Segression(center_line_segmentation_threshold=0.999,\
                     backbone=args.backbone,\
                     segression_dimension= 3,\
+                    n_classes=1,\
                     attention=False,\
                     out_channels=args.out_channels).to(device)
     if args.checkpoint!="":
@@ -247,6 +284,7 @@ def find_max_batch_size_tensor(attempt = 5000,max_allowed=5000 ):
             loader_iter = enumerate(loader)
             _, batch = loader_iter.__next__()
         image, ground_truth,center_line_map,train_mask, tr_mask, tcl_mask, radius_map, sin_map, cos_map=batch
+        center_line_map= center_line_map[1]
         if torch.sum(center_line_map)<=max_allowed:
         #      \
         # and torch.sum(center_line_map)>=max_allowed-peterbation:
@@ -311,12 +349,17 @@ def main():
 
         image, ground_truth,center_line_map,train_mask, tr_mask, tcl_mask, radius_map, sin_map, cos_map=batch
         if i_iter == 0 or i_iter==iteration_to_start_from:
-            batch, max_value= find_max_batch_size_tensor(attempt = 500,max_allowed=5000 )
+            batch, max_value= find_max_batch_size_tensor(attempt = 50,max_allowed=5000 )
             image, ground_truth,center_line_map,train_mask, tr_mask, tcl_mask, radius_map, sin_map, cos_map=batch
-        if torch.sum(center_line_map)>max_value:
+
+        if torch.sum(center_line_map[1])>max_value:
             continue
         img=image.to(device)
-        center_line_map=center_line_map.to(device)
+        # original scale as an input image
+        center_line_map_orig = center_line_map[0].to(device)
+
+        # shrined to the one fourth of the original image scale
+        center_line_map=center_line_map[1].to(device)#center_line_map.to(device)
         center_line_map=center_line_map.unsqueeze(1)
         train_mask= train_mask.to(device)
 
@@ -324,8 +367,18 @@ def main():
         train_mask= train_mask.unsqueeze(1)
         compressed_ground_truth= compressed_ground_truth.unsqueeze(1)
 
-        contour_edge_ground_truth= ground_truth[1].to(device)
+        border_weight = ground_truth[2][:,1,...]*2.0
 
+#        contour_edge_ground_truth= ground_truth[1].to(device)
+        three_class_seg_ground_truth= ground_truth[3].to(device)
+        # print('hello', three_class_seg_ground_truth.shape)
+        # plt.subplot(1,3,1)
+        # plt.imshow(three_class_seg_ground_truth[0,0,:,:].detach().cpu().numpy())
+        # plt.subplot(1,3,2)
+        # plt.imshow(three_class_seg_ground_truth[0,1,:,:].detach().cpu().numpy())
+        # plt.subplot(1,3,3)
+        # plt.imshow(three_class_seg_ground_truth[0,2,:,:].detach().cpu().numpy())
+        # plt.show()
 
         #model.switch_gaussian_label_map(center_line_map)
         center_line_map, indices, flag = check_boundary_condition_and_modify(center_line_map)
@@ -372,7 +425,14 @@ def main():
         #     train_mask.shape,\
         #     score_map.shape,\
         #     center_line_map)
-        loss_score_map=centre_line_dice_loss(compressed_ground_truth,train_mask,score_map,center_line_map)
+
+        # center line dice loss previous used
+        loss_score_map=centre_line_dice_loss(train_mask,score_map,center_line_map_orig, border_weight)
+
+
+        #loss_score_map=multiclass_dice_loss(three_class_seg_ground_truth,train_mask,score_map)
+
+
         #convert train mask to bool
         train_mask= train_mask.type(torch.bool)
         # loss_score_map= binary_focal_loss(score_map,center_line_map,train_mask)
@@ -391,7 +451,10 @@ def main():
             train_mask = train_mask[indices,...]
             variance_map = variance_map[indices,...]
             compressed_ground_truth=compressed_ground_truth[indices,...]
+            #hree_class_seg_ground_truth=three_class_seg_ground_truth[indices,...]
+            #score_map = score_map[indices,...]
             loss_contour_map = loss_dice(train_mask,contour_map,compressed_ground_truth)
+
             #loss_contour_map=binary_focal_loss(contour_map,compressed_ground_truth,train_mask)
             #print("====================loss contour map",loss_contour_map)
             if args.train_category=='attention':
@@ -437,8 +500,15 @@ def main():
             #print("visualzing the error case of segmentation",torch.unique(center_line_map))
             #print(img[0].shape,compressed_ground_truth[0,...].shape,contour_map[0].shape,score_map[0].shape,center_line_map[0].shape, variance_map[0].shape)
 
-            visual_list = [img[0],compressed_ground_truth[0,...],contour_map[0],score_map[0],\
-            center_line_map[0], center_line_map[0]]#meta['variance_attention'][0,...]]
+            visual_list = [
+                           [img[0], "real_image", 'Real Image'],\
+                           [compressed_ground_truth[0,...]*1.0,"ground_truth", 'Ground Truth for Gaussian Branch'],\
+                           [contour_map[0]*255.0,"contour_map", 'Contour Prediction from Gaussian Branch'],\
+                           [score_map[0]*1.0,"score_map", 'Prediction for Segmentation Branch'],\
+                           [center_line_map_orig[0,...]*1.0,"cneter line", 'ground truth cetner line ']
+                           ]
+
+                            #three_class_seg_ground_truth[0,...]]#meta['variance_attention'][0,...]]
             #print(meta['variance_attention'].shape)
             visualization(visual_list )
 

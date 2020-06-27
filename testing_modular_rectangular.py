@@ -24,7 +24,7 @@ import scipy.io as io
 from util.config import config as cfg
 from util.misc import find_bottom, find_long_edges, split_edge_seqence, \
     norm2, vector_cos, vector_sin
-from model.east_gaussian_rotated import EAST
+
 
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
@@ -576,10 +576,10 @@ if __name__ == '__main__':
     stds = (0.229, 0.224, 0.225)
     #scales= [512,512+128,512+2*128]
     #scales= [512,512+128,512+2*128]
-    scaling_factor= [1,0.75,0.65,0.5]
+    scaling_factor= [1]
     test_loader= TestDataLoader(max_size=512+2*128, scaling_factor=scaling_factor)
-    model=EAST(segmentation_threshold=0.10).to(device)
-    checkpoint= 'snapshots/TotalText_3d_rotated_gaussian_attention_30000.pth'
+    model=EAST(segmentation_threshold=0.4).to(device)
+    checkpoint= 'snapshots/batch_size_2lr_0.0001n_steps_100000dataset_TOTALTEXTbackbone_VGG/TOTALTEXT_3d_rotated_gaussian_without_attention_70000.pth'
     model.load_state_dict(torch.load(checkpoint,map_location=device),strict=True)
     model.eval()
 

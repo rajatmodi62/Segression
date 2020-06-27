@@ -25,10 +25,11 @@ import argparse
 
 print("All requisite testing modules loaded")
 
+#n_classes = 3
 #free the gpus
 os.system("nvidia-smi | grep 'python' | awk '{ print $3 }' | xargs -n1 kill -9")
 #enter scales in a sorted increasing order
-scales= [512,512+128,512+2*128,1024]
+scales= [512-128,512,512+128,512+2*128,1024]
 #256,512,512+256,512+128
 # scales= [512+2*128]
 
@@ -96,6 +97,8 @@ parser.add_argument("--backbone", type=str, default="VGG",
                     help="Enter the Backbone of the model, (VGG,RESNEST,DB)")
 parser.add_argument("--out-channels", type=int, default=32,
                         help="Save summaries and checkpoint every often.")
+parser.add_argument("--n-classes", type=int, default=1,
+                        help="number of classes in segmentation head.")
 args = parser.parse_args()
 
 ################################################################################
@@ -142,6 +145,7 @@ model= Segression(center_line_segmentation_threshold=args.segmentation_threshold
                     backbone=args.backbone,\
                     segression_dimension= 3,\
                     out_channels= args.out_channels,\
+                    n_classes=args.n_classes,\
                     mode='test').to(device)
 
 #load checkpoint
@@ -195,6 +199,10 @@ for i,batch in enumerate(test_loader):
             #     continue
 
             #score map is center line map
+            if args.n_classes>1:
+                score_map = score_map[:,2,...]
+                # plt.imshow(score_map.squeeze().cpu().numpy())
+                # plt.show()
             score_map= score_map.squeeze(0)
             score_map= score_map.squeeze(0)
             score_map= score_map.detach().cpu().numpy()

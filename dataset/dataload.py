@@ -129,11 +129,11 @@ class TextDataset(data.Dataset):
         mask[rr, cc] = value
 
     def make_text_center_line(self, sideline1, sideline2, center_line, radius, \
-                              tcl_mask, radius_map, sin_map, cos_map, center_line_map,expand=0.3, shrink=1):
-
+                              tcl_mask, radius_map, sin_map, cos_map, center_line_map,expand=0.3, shrink=2):
         # TODO: shrink 1/2 * radius at two line end
         #print("man, now we are gonna make the centre line in the polygon",len(center_line))
         points_stack=[]
+        shrinked_points_stack=[]
         for i in range(shrink, len(center_line) - 1 - shrink):
 
             c1 = center_line[i]
@@ -159,20 +159,26 @@ class TextDataset(data.Dataset):
             #fill the center line map with 1/4 resolution
             #print('polygon  --->',polygon)
             polygon_points=polygon.astype(int).copy()
-            polygon_points = polygon_points//4
+            polygon_points_shrinked = polygon_points//4
+
+
             #print('polygon points --->',polygon_points)
             #cv2.drawContours(center_line_map,[polygon_points],-1,(1,1,1),-1)
             points_stack.append(polygon_points)
+            shrinked_points_stack.append(polygon_points_shrinked)
+
             #points_stack.append(np.asarray([p1, p2, p3, p4])//4)
             #self.fill_polygon(np.zeros((128,128)),polygon//4,value=1)
             #self.fill_polygon(radius_map, polygon, value=radius[i])
             #self.fill_polygon(sin_map, polygon, value=sin_theta)
             #self.fill_polygon(cos_map, polygon, value=cos_theta)
-        return points_stack
+        return [points_stack, shrinked_points_stack]
 
-    def create_compressed_gt(self,polygons, type='contour_border', viz=False):
+    def create_compressed_gt(self,polygons,center_line_map, type='contour_border', viz=False):
 
         gt= np.zeros((128,128), np.uint8)
+        three_class = np.zeros((3,128,128), np.uint8)
+
         polygon_edges= np.zeros((128,128), np.uint8)
         contour_edges= np.zeros((128,128), np.uint8)
         for i, polygon in enumerate(polygons):
@@ -192,24 +198,29 @@ class TextDataset(data.Dataset):
         polygon_edges = (polygon_edges>0.5)*1.0
         contour_edges = (contour_edges>0.5)*1.0
         contour_edges=contour_edges.astype('float32')
-        polygon_edges=polygon_edges.astype('float32') 
+        polygon_edges=polygon_edges.astype('float32')
+        #center_line_map = cv2.resize(center_line_map, (0,0), fx=0.25, fy=0.25, interpolation=cv2.INTER_NEAREST)
+        temp = gt + center_line_map
+        three_class[0,...]= (temp==0)*1.0
+        three_class[1,...]= (temp==1)*1.0
+        three_class[2,...]= (temp==2)*1.0
 
         if viz==True:
             #print("godzilla",type(point_list[0]),point_list[0],\
             #np.unique(polygon_edges), np.unique(contour_edges))
             plt.subplot(1,3,1)
-            plt.imshow(gt)
+            plt.imshow(three_class[0,...])
             plt.subplot(1,3,2)
-            plt.imshow(polygon_edges)
+            plt.imshow(three_class[1,...])
             plt.subplot(1,3,3)
-            plt.imshow(contour_edges)
+            plt.imshow(three_class[2,...])
             plt.show()
         # if type=='border':
         #     return polygon_edges
         # elif type=='contour_border':
         #     return contour_edges
         # else:
-        return [gt,polygon_edges, contour_edges]
+        return [gt,polygon_edges, contour_edges, three_class]
 
     def get_training_data(self, image, polygons, image_id, image_path,gt_mat_path):
         #print("during entry image shape is",image.shape)
@@ -234,7 +245,7 @@ class TextDataset(data.Dataset):
             #print("image.shape",image.shape)
             image, polygons = self.transform(image, copy.copy(polygons))
             #print("after transformation",image.shape)
-        compressed_groud_truth= self.create_compressed_gt(polygons)
+        # compressed_groud_truth= self.create_compressed_gt(polygons)
         #print(" polygons",type(polygons))
         tcl_mask = np.zeros(image.shape[:2], np.uint8)
         #print("tcl_mask_shape",tcl_mask.shape)
@@ -242,7 +253,10 @@ class TextDataset(data.Dataset):
         sin_map = np.zeros(image.shape[:2], np.float32)
         cos_map = np.zeros(image.shape[:2], np.float32)
         center_line_map= np.zeros((image.shape[-3]//4,image.shape[-2]//4) , np.float32)
-        center_line_contour= np.zeros((image.shape[-3]//4,image.shape[-2]//4) , np.float32)
+        # center_line_contour= np.zeros((image.shape[-3]//4,image.shape[-2]//4) , np.float32)
+        center_line_contour= np.zeros((image.shape[-3],image.shape[-2]) , np.float32)
+        center_line_shrinked_contour= np.zeros((image.shape[-3]//4,image.shape[-2]//4) , np.float32)
+
         #check the number of disks which are to be fit
         #print("no of disks",cfg.n_disk)
         #print("no of polygons",len(polygons))
@@ -250,6 +264,7 @@ class TextDataset(data.Dataset):
         center_points_list= []
         radius_list= []
         point_stack=[]
+        point_stack_shrinked=[]
         for i, polygon in enumerate(polygons):
             if polygon.text != '#':
                 sideline1, sideline2, center_points, radius = polygon.disk_cover(n_disk=cfg.n_disk)
@@ -267,11 +282,16 @@ class TextDataset(data.Dataset):
                 #print("radius",type(radius),radius.shape)
                 #print("center points",type(center_points),center_points.shape)
                 contour=self.make_text_center_line(sideline1, sideline2, center_points, radius, tcl_mask, radius_map, sin_map, cos_map,center_line_map)
-                point_stack = point_stack+contour
+                point_stack = point_stack+contour[0]
+                point_stack_shrinked = point_stack_shrinked+ contour[1]
         cv2.drawContours(center_line_contour,point_stack,-1,(1,1,1),-1)
+        cv2.drawContours(center_line_shrinked_contour,point_stack_shrinked,-1,(1,1,1),-1)
+
         #print('generate')
         # plt.imshow(center_line_contour)
         # plt.show()
+        compressed_groud_truth= self.create_compressed_gt(polygons,center_line_shrinked_contour)
+
         #print(point_stack) #point_stack =
         #cv2.drawContours(center_line_contour,point_stack,-1,(100,100,100),5)
         #print("after filling up polygon radius map",len(np.unique(radius_map)))
@@ -352,7 +372,7 @@ class TextDataset(data.Dataset):
         #print("compressed_ground_truth share",compressed_groud_truth.shape,"train mask",train_mask.shape,"tr mask",tr_mask.shape)
         #print("cnter line map",torch.unique(center_line_contour))
         #print("returning")
-        return image, compressed_groud_truth,center_line_contour,train_mask, tr_mask, tcl_mask, radius_map, sin_map, cos_map#, meta,gt_mat_path
+        return image, compressed_groud_truth,[center_line_contour,center_line_shrinked_contour],train_mask, tr_mask, tcl_mask, radius_map, sin_map, cos_map#, meta,gt_mat_path
 
     def get_test_data(self, image, image_id, image_path):
         H, W, _ = image.shape
