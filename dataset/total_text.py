@@ -80,6 +80,7 @@ class TotalText(TextDataset):
 
         # Read annotation
         annotation_id = self.annotation_list[item]
+        #
         #print("annotation_id",annotation_id)
         #correct the annotation_id for txt case of chinese dataset
         if annotation_id.split('.')[0].split('_')[-1]=='synth':

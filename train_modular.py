@@ -208,7 +208,7 @@ def get_train_loader_object(dataset):
         )
     elif dataset=='TOTALTEXT':
         trainset = TotalText(
-            data_root=args.data_root+'/data/total-text',
+            data_root=args.data_root+'/data/total-text-original',
             input_size=args.input_size,
             ignore_list=None,
             is_training=True,
@@ -427,7 +427,7 @@ def main():
         #     center_line_map)
 
         # center line dice loss previous used
-        loss_score_map=centre_line_dice_loss(train_mask,score_map,center_line_map_orig, border_weight)
+        loss_score_map=centre_line_dice_loss(train_mask,score_map,center_line_map_orig)
 
 
         #loss_score_map=multiclass_dice_loss(three_class_seg_ground_truth,train_mask,score_map)
