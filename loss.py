@@ -63,18 +63,25 @@ def loss_dice(dont_care_mask,probas,true_1_hot,eps=1e-7):
     # print(" ======================================= bada admin      ", true_1_hot)
     return loss
 
-def centre_line_dice_loss(dont_care_mask,pred_center_line,gt_center_line, border_weight):
+def centre_line_dice_loss(dont_care_mask,pred_center_line,gt_center_line):
+    # print('before', pred_center_line.shape, dont_care_mask.shape)
     dont_care_mask = dont_care_mask.squeeze()
     pred_center_line = pred_center_line.squeeze()
     gt_center_line = gt_center_line.squeeze()
     #border_weight = border_weight.squeeze()
     if len(pred_center_line.shape)==3:
-        pred_center_line = pred_center_line.unsqueeze(0)
-        dont_care_mask = dont_care_mask.unsqueeze(0)
-        gt_center_line = gt_center_line.unsqueeze(0)
+        pred_center_line = pred_center_line.unsqueeze(1)
+        dont_care_mask = dont_care_mask.unsqueeze(1)
+        gt_center_line = gt_center_line.unsqueeze(1)
+        #border_weight = border_weight.unsqueeze(8)
+    if len(pred_center_line.shape)==2:
+        pred_center_line = pred_center_line.unsqueeze(0).unsqueeze(0)
+        dont_care_mask = dont_care_mask.unsqueeze(0).unsqueeze(0)
+        gt_center_line = gt_center_line.unsqueeze(0).unsqueeze(0)
+
         #border_weight = border_weight.unsqueeze(8)
 
-
+    # print(pred_center_line.shape, dont_care_mask.shape)
     pred_center_line = F.interpolate(pred_center_line, mode='nearest', scale_factor=4)
     dont_care_mask=   F.interpolate(dont_care_mask*1.0, mode='nearest', scale_factor=4)
 
