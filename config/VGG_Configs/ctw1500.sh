@@ -4,18 +4,19 @@ INPUT_SIZE=512
 LEARNING_RATE=1e-4
 NUM_STEPS=100000
 POWER=0.9
-SAVE_PRED_EVERY=10
+SAVE_PRED_EVERY=5000
 SNAPSHOT_DIR='./snapshots/'
 DATASET='CTW1500'
 CHECKPOINT_NO=0
 UPDATE_VISDOM_ITER=100
-BACKBONE='vgg'
-#CHECKPOINT_PATH='snapshots/CTW1500_3d_rotated_gaussian_without_attention_'$CHECKPOINT_NO'.pth'
+BACKBONE='VGG'
+CHECKPOINT_PATH='snapshots/deepansh/pretrained_VGG_200000.pth'
 ITERATION_TO_START_FROM=`expr $CHECKPOINT_NO + 1`
-CUDA_DEVICE=1
+CUDA_DEVICE=0
 
 
 nvidia-smi | grep 'python' | awk '{ print $3 }' | xargs -n1 kill -9
+kill -9 $(ps -A -ostat,ppid | grep -e '[zZ]'| awk '{ print $2 }')
 
 CUDA_VISIBLE_DEVICES=$CUDA_DEVICE python train_modular.py --batch-size=$BATCH_SIZE \
             --learning-rate=$LEARNING_RATE \

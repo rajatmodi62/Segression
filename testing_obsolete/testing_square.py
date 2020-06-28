@@ -29,7 +29,7 @@ print("All requisite testing modules loaded")
 #free the gpus
 os.system("nvidia-smi | grep 'python' | awk '{ print $3 }' | xargs -n1 kill -9")
 #enter scales in a sorted increasing order
-scales= [512-128,512,512+128,512+2*128,1024]
+scales= [512-128,512,512+128,512+2*128,1024,1024+128]
 #256,512,512+256,512+128
 # scales= [512+2*128]
 
