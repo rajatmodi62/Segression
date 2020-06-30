@@ -10,6 +10,7 @@ from skimage.draw import polygon as drawpoly
 from util.misc import find_bottom, find_long_edges, split_edge_seqence, \
     norm2, vector_cos, vector_sin
 import matplotlib.pyplot as plt
+import glob as glob
 
 def pil_load_img(path):
     image = Image.open(path)
@@ -81,7 +82,7 @@ class TextDataset(data.Dataset):
         super().__init__()
 
         self.transform = transform
-
+        self.texture_list = glob.glob("data/dtd/images/*/*.jpg")
     def parse_mat(self, mat_path):
         """
         .mat file parser

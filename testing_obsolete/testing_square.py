@@ -29,7 +29,9 @@ print("All requisite testing modules loaded")
 #free the gpus
 os.system("nvidia-smi | grep 'python' | awk '{ print $3 }' | xargs -n1 kill -9")
 #enter scales in a sorted increasing order
-scales= [512-128,512,512+128,512+2*128,1024,1024+128]
+# scales= [512-128,512,512+128,512+2*128,1024,1024+128]
+#scales= [512,512+128,512+2*128,1024]
+scales= [512,512+2*128,1024, 1024+512]
 #256,512,512+256,512+128
 # scales= [512+2*128]
 
@@ -67,7 +69,7 @@ def create_gaussian_array(variance_x,variance_y,theta,x,y,height=INPUT_SIZE//4,w
 
 def voting(center_line_list):
     #get the minimum no of votes needed
-    min_votes_needed= len(scales)//2 + 1
+    min_votes_needed= 2#len(scales)//2 + 1
     #perform the sum in the list
     mask = np.zeros(center_line_list[0].shape)
 
