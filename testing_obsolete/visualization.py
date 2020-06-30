@@ -87,8 +87,9 @@ def parse_ground_truth(filename, dataset):
 
             if len(x) < 4:  # too few points
                 continue
-            pts = np.stack([x, y]).T.astype(np.int32)
-            polygons.append(pts)
+            if text!='#': 
+                pts = np.stack([x, y]).T.astype(np.int32)
+                polygons.append(pts)
     elif dataset=='CTW1500':
         gt_path=os.path.join(gt_dir,filename+'.txt')
         with open(gt_path) as f:

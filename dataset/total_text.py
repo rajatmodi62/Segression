@@ -4,7 +4,7 @@ import os
 
 from dataset.data_util import pil_load_img
 from dataset.dataload import TextDataset, TextInstance
-
+from util.blending import aug_image
 class TotalText(TextDataset):
 
     def __init__(self, data_root,input_size=512,ignore_list=None, is_training=True, transform=None):
@@ -77,7 +77,7 @@ class TotalText(TextDataset):
 
         # Read image data
         image = pil_load_img(image_path)
-
+        image= aug_image(image,self.texture_list)
         # Read annotation
         annotation_id = self.annotation_list[item]
         #
