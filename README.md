@@ -5,7 +5,7 @@ A Gaussian Text Detector for Arbitrary Shapes
 - [ ] Convert 1D, 2D to non vectorized using non vectorized
 - [x] Modularize the testing code for square images.
 - [x] Test all dataset to fix the evaluation metrics.
-- [ ] Pre-training of the VGG, ResNet50 and ResNest50.
+- [x] Pre-training of the VGG, ResNet50 and ResNest50.
 - [x] Fine tuned on datasets (TotalText, CTW1500, ICDAR 2015)
 - [ ] Abilation for 1d, 2d and 3d gaussian projection.
 
@@ -19,7 +19,7 @@ Augmentation used:
 
 | Dataset     |  Fine Tune   |    Optimizer   | Learning Rate  | Decay policy | Batch size  | Itearation |
 |-------------|--------------|----------------|----------------|--------------|-------------|------------|
-| Synthetic   |    N         |     Adam       |    1e-4        |Linear        |    4        |  1000000   |
+| Synthetic   |    N         |     Adam       |    1e-4        |Linear        |    4        |  2000000   |
 | Total Text  |    Y         |     Adam       |    1e-4        |Linear        |    4        |  1000000   |
 | CTW1500     |    Y         |     Adam       |    1e-4        |Linear        |    4        |  1000000   |
 | ICDAR 2015  |    Y         |     Adam       |    1e-4        |Linear        |    4        |  1000000   |
@@ -27,20 +27,20 @@ Augmentation used:
 
 # Pre-trained models
 
-| Backbone    |  Dataset     |    Download Link                                                                              |
-|-------------|--------------|-----------------------------------------------------------------------------------------------|
-|VGG-16       | Synthetic    | [download](https://drive.google.com/file/d/1u8lcuyE7poKJfEWnQlm3oQHlYA1lZ-62/view?usp=sharing)|
-|VGG-16       | Total Text   |                                                                                               |
-|VGG-16       | CTW1500      |                                                                                               |
-|VGG-16       | ICDAR 2015   |                                                                                               |
-|ResNet50     | Synthetic    |                                                                                               |
-|ResNet50     | Total Text   |                                                                                               |
-|ResNet50     | CTW1500      |                                                                                               |
-|ResNet50     | ICDAR 2015   |                                                                                               |
-|ResNest50    | Synthetic    |                                                                                               |
-|ResNest50    | Total Text   |                                                                                               |
-|ResNest50    | CTW1500      |                                                                                               |
-|ResNest50    | ICDAR 2015   |                                                                                               |
+| Backbone    |  Dataset     |    Download Link (Vanila)                                                                     |    Download Link (variance conditional)                                                      |
+|-------------|--------------|-----------------------------------------------------------------------------------------------|----------------------------------------------------------------------------------------------|
+|VGG-16       | Synthetic    | [download](https://drive.google.com/file/d/1u8lcuyE7poKJfEWnQlm3oQHlYA1lZ-62/view?usp=sharing)|[download](https://drive.google.com/file/d/1BB81Anibs7AJzmXJUuE7O8yyzAlF-PGq/view?usp=sharing)|
+|VGG-16       | Total Text   |                                                                                               |                                                                                              |        
+|VGG-16       | CTW1500      |                                                                                               |                                                                                              |
+|VGG-16       | ICDAR 2015   |                                                                                               |                                                                                              |
+|DB           | Synthetic    |                                                                                               |[download](https://drive.google.com/file/d/1Or91bbI9MMNKtvK-rO-mxUrxtVbUiy8t/view?usp=sharing)|
+|DB           | Total Text   |                                                                                               |                                                                                              |
+|DB           | CTW1500      |                                                                                               |                                                                                              |    
+|DB           | ICDAR 2015   |                                                                                               |                                                                                              |
+|ResNest50    | Synthetic    |                                                                                               |[download](https://drive.google.com/file/d/1MB2J2rPN1gOt62fG-QTBfxSpRs6RgUPX/view?usp=sharing)|
+|ResNest50    | Total Text   |                                                                                               |                                                                                              |
+|ResNest50    | CTW1500      |                                                                                               |                                                                                              |
+|ResNest50    | ICDAR 2015   |                                                                                               |                                                                                              |
 
 
 # Training
