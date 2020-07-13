@@ -153,14 +153,44 @@ def loss_calc(pred, label, gpu):
     #return criterion(pred, label)
     return entropy
 
-def centre_line_loss(original_contour_mask,dont_care_mask,pred_center_line,gt_center_line):
+def centre_line_loss(dont_care_mask,pred_center_line,gt_center_line):
+    dont_care_mask = dont_care_mask.squeeze()
+    pred_center_line = pred_center_line.squeeze()
+    gt_center_line = gt_center_line.squeeze()
+    #border_weight = border_weight.squeeze()
+    if len(dont_care_mask.shape)==3:
+        #pred_center_line = pred_center_line.unsqueeze(1)
+        dont_care_mask = dont_care_mask.unsqueeze(1)
+        gt_center_line = gt_center_line.unsqueeze(1)
+        #border_weight = border_weight.unsqueeze(8)
+    if len(dont_care_mask.shape)==2:
+        #pred_center_line = pred_center_line.unsqueeze(0).unsqueeze(0)
+        dont_care_mask = dont_care_mask.unsqueeze(0).unsqueeze(0)
+        gt_center_line = gt_center_line.unsqueeze(0).unsqueeze(0)
+
+    if len(pred_center_line.shape)==3:
+        pred_center_line = pred_center_line.unsqueeze(1)
+    if len(pred_center_line.shape)==2:
+        pred_center_line = pred_center_line.unsqueeze(0).unsqueeze(0)
+
+        #border_weight = border_weight.unsqueeze(8)
+
+    # print(pred_center_line.shape, dont_care_mask.shape)
+    pred_center_line = F.interpolate(pred_center_line, mode='nearest', scale_factor=4)
+    dont_care_mask=   F.interpolate(dont_care_mask*1.0, mode='nearest', scale_factor=4)
+    #print('hello', dont_care_mask.shape, pred_center_line.shape, gt_center_line.shape)
+
+
     #get the gt_mask
-    gt_mask= (original_contour_mask*dont_care_mask==1)
+    #gt_mask= (gt_center_line*(dont_care_mask==1)*1)
     #return nn.crossentropy(pred_center_line[gt_mask],gt_center_line[gt_mask])
-    return binary_cross_entropy(pred_center_line[gt_mask],gt_center_line[gt_mask])
+    loss = binary_cross_entropy(pred_center_line,gt_center_line,dont_care_mask)
+    #loss_bit2 = binary_cross_entropy(pred_center_line[:,1,...],1-gt_center_line,dont_care_mask)
+    #loss = (loss_bit1+loss_bit2)/2
+    return loss
     #label is the
 
-def binary_cross_entropy(pred, label):
+def binary_cross_entropy(pred, label, dont_care):
     """
     This function returns cross entropy loss for semantic segmentation
     """
@@ -170,10 +200,15 @@ def binary_cross_entropy(pred, label):
     #print('cross check', label.shape, pred.shape)
     #print('check label', torch.unique(label))
     #label = Variable(label.float()).cuda(gpu)
-
+    #print('hello dear')
+    #print(pred.shape, label.shape,dont_care.shape)
+    weight = 1-(torch.sum(torch.sum(label*dont_care,dim=-1),dim=-1)/torch.sum(torch.sum(dont_care,dim=-1),dim=-1))
+    #print(weight, torch.max(weight), torch.min(weight))
+    dont_care = torch.gt(dont_care,0)
+    weight = weight.view(label.shape[0], label.shape[1],1,1).repeat(1,1,label.shape[-2],label.shape[-1])
     pred = torch.clamp(pred, min=1e-7, max=0.99)
-    entropy = -label*torch.log(pred)- (1-label)*torch.log(1-pred)
-    entropy = torch.mean(torch.mean(entropy,dim=-1),dim=-1)
+    entropy = -weight*label*torch.log(pred)- (1-weight)*(1-label)*torch.log(1-pred)
+    entropy = torch.masked_select(entropy, dont_care)
     entropy = torch.mean(entropy)
     #print(entropy.data)
     #criterion = CrossEntropy2d().cuda(gpu)

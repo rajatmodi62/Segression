@@ -27,7 +27,7 @@ from dataset.total_text import TotalText
 from dataset.synth_text import SynthText
 from model.segression import Segression
 from util.augmentation import BaseTransform, Augmentation
-from loss import *
+from loss_function_new import *
 #from model.edge_detection import EdgeDetection
 from loss import BinaryFocalLoss
 from collections import defaultdict
@@ -46,7 +46,7 @@ def get_arguments():
 #     """
     parser = argparse.ArgumentParser(description="Easy TextDetection Network")
     parser.add_argument("--data-root", type=str,
-                        default="/media/bashturtle/Data/Research/parimal/icip-work/important/Curved-Text-Detection/",
+                        default="./",
                         help="Absolute Dataset path")
     parser.add_argument("--batch-size", type=int, default=2,
                         help="Number of images sent to the network in one step.")
@@ -208,7 +208,7 @@ def get_train_loader_object(dataset):
         )
     elif dataset=='TOTALTEXT':
         trainset = TotalText(
-            data_root=args.data_root+'/data/total-text-original',
+            data_root=args.data_root+'/data/total-text',
             input_size=args.input_size,
             ignore_list=None,
             is_training=True,
@@ -228,7 +228,7 @@ def load_model(args,device=torch.device("cuda:0" if torch.cuda.is_available() el
     model=Segression(center_line_segmentation_threshold=0.999,\
                     backbone=args.backbone,\
                     segression_dimension= 3,\
-                    n_classes=1,\
+                    n_classes=3,\
                     attention=False,\
                     out_channels=args.out_channels).to(device)
     if args.checkpoint!="":
@@ -349,7 +349,7 @@ def main():
 
         image, ground_truth,center_line_map,train_mask, tr_mask, tcl_mask, radius_map, sin_map, cos_map=batch
         if i_iter == 0 or i_iter==iteration_to_start_from:
-            batch, max_value= find_max_batch_size_tensor(attempt = 500,max_allowed=5000 )
+            batch, max_value= find_max_batch_size_tensor(attempt = 500,max_allowed=7000)
             image, ground_truth,center_line_map,train_mask, tr_mask, tcl_mask, radius_map, sin_map, cos_map=batch
 
         if torch.sum(center_line_map[1])>max_value:
@@ -371,6 +371,8 @@ def main():
 
 #        contour_edge_ground_truth= ground_truth[1].to(device)
         three_class_seg_ground_truth= ground_truth[3].to(device)
+        textregion_orignal_scale = ground_truth[4].to(device)
+
         # print('hello', three_class_seg_ground_truth.shape)
         # plt.subplot(1,3,1)
         # plt.imshow(three_class_seg_ground_truth[0,0,:,:].detach().cpu().numpy())
@@ -427,7 +429,8 @@ def main():
         #     center_line_map)
 
         # center line dice loss previous used
-        loss_score_map=centre_line_dice_loss(train_mask,score_map,center_line_map_orig)
+        #loss_score_map=centre_line_loss(train_mask,score_map,center_line_map_orig)
+        loss_score_map= centre_line_loss2(train_mask, score_map, center_line_map_orig, textregion_orignal_scale)
 
 
         #loss_score_map=multiclass_dice_loss(three_class_seg_ground_truth,train_mask,score_map)
@@ -451,6 +454,7 @@ def main():
             train_mask = train_mask[indices,...]
             variance_map = variance_map[indices,...]
             compressed_ground_truth=compressed_ground_truth[indices,...]
+            #textregion_orignal_scale = textregion_orignal_scale[indices,....]
             #hree_class_seg_ground_truth=three_class_seg_ground_truth[indices,...]
             #score_map = score_map[indices,...]
             loss_contour_map = loss_dice(train_mask,contour_map,compressed_ground_truth)
@@ -459,7 +463,7 @@ def main():
             #print("====================loss contour map",loss_contour_map)
             if args.train_category=='attention':
                 variance_loss_tolerance= 0
-                loss_variance = loss_mse(variance_map,compressed_ground_truth, train_mask)*variance_loss_tolerance
+                #loss_variance = loss_mse(variance_map,compressed_ground_truth, train_mask)*variance_loss_tolerance
 
                 #loss_edge_map=centre_line_dice_loss(contour_edge_ground_truth,train_mask,sobel_edge,contour_edge_ground_truth)
                 # print('________________________________>>>>>>>>>>>>>>>>>>')
@@ -471,7 +475,7 @@ def main():
                 # print('uuuuuuuuuuuuuuuuuuuuuuuu ========>', loss_contour_map, loss_seg,loss_edge_map)
                 #, loss_edge_map,
                 #print('loss 2', loss_contour_map)
-                loss_seg = loss_seg+contour_loss_tolerance*(loss_contour_map)+loss_variance
+                loss_seg = loss_seg+contour_loss_tolerance*(loss_contour_map)#+loss_variance
             else:
                 loss_seg = loss_seg+contour_loss_tolerance*(loss_contour_map)
 
@@ -508,9 +512,31 @@ def main():
                            [center_line_map_orig[0,...]*1.0,"cneter line", 'ground truth cetner line ']
                            ]
 
+    
+
                             #three_class_seg_ground_truth[0,...]]#meta['variance_attention'][0,...]]
             #print(meta['variance_attention'].shape)
             visualization(visual_list )
+
+        if i_iter%args.update_visdom_iter==0:
+#        if i_iter%2==0:  
+            temp = score_map.detach()
+            cent = F.softmax(score_map[:,0:2,...],dim=1).detach()
+            plt.subplot(2,3,1)
+            plt.imshow(textregion_orignal_scale[0,...].detach().cpu().numpy()*255)
+            plt.subplot(2,3,2)
+            plt.imshow(F.sigmoid(temp[0,2,...]).cpu().numpy())
+            plt.subplot(2,3,3)
+            plt.imshow(cent[0,0,...].cpu().numpy())
+            plt.subplot(2,3,4)
+            plt.imshow(cent[0,1,...].cpu().numpy())
+            plt.subplot(2,3,5)
+            plt.imshow(center_line_map_orig[0,...].cpu().numpy())
+            plt.subplot(2,3,6)
+            plt.imshow(img[0].permute(1,2,0).cpu().numpy())
+#            plt.show()
+            plt.savefig('visual.png')
+            plt.close()
 
         if i_iter%10==0 :
             print('exp = {}'.format(args.snapshot_dir))
@@ -526,7 +552,7 @@ def main():
                     pass
             print("len of tensors",len)
             print("backbrop counter",i_iter)
-            print('iter = {0:8d}/{1:8d}, loss_seg = {2:.3f}, loss_gaussian_branch = {3:.3f}, loss_segmentation_branch = {4:.3f}, loss_edge_map= {5:.3f}'.format(i_iter, args.num_steps, loss_seg,loss_contour_map,loss_score_map,loss_variance))
+            print('iter = {0:8d}/{1:8d}, loss_seg = {2:.3f}, loss_gaussian_branch = {3:.3f}, loss_segmentation_branch = {4:.3f}'.format(i_iter, args.num_steps, loss_seg,loss_contour_map,loss_score_map))
 
 
         if i_iter >= args.num_steps-1:
@@ -540,7 +566,7 @@ def main():
         del score_map,contour_map,variance_map, image, compressed_ground_truth,center_line_map,train_mask, tr_mask, tcl_mask, radius_map, sin_map, cos_map
         del loss_seg,loss_score_map
         if  flag:
-            del loss_contour_map, loss_variance
+            del loss_contour_map#, loss_variance
     end = timeit.default_timer()
     print (end-start,'seconds')
 

@@ -70,7 +70,8 @@ class SegmentationHead(nn.Module):
         x= self.conv2(x)
         #print("fata")
         if self.n_classes>1:
-            x = F.softmax(x, dim=1)
+            pass;
+            #x = F.softmax(x, dim=1)
         else:
             x = F.sigmoid(x)
         #x= F.sigmoid(self.conv1(x))

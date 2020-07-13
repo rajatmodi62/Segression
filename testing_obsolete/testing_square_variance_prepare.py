@@ -29,10 +29,13 @@ print("All requisite testing modules loaded")
 #free the gpus
 os.system("nvidia-smi | grep 'python' | awk '{ print $3 }' | xargs -n1 kill -9")
 #enter scales in a sorted increasing order
-#scales= [512-128,512,512+128,512+2*128,1024,1024+128]
-scales= [512-128,512,512+128,512+2*128,1024]
+#scales= [512-128,512,512+128,512+2*128,1024, 1024+256]
+scales= [512,512+128,512+2*128,1024, 1024+256, 1024+512]
+
+scaling_factor= np.max(np.asarray(scales))/scales
+
 #scales= [512,512+128,512+2*128,1024]
-#scales= [512,512+2*128,1024, 1024+512]
+# scales= [512,512+2*128,1024, 1024+512]
 #256,512,512+256,512+128
 # scales= [512+2*128]
 
@@ -54,7 +57,6 @@ def create_gaussian_array(variance_x,variance_y,theta,x,y,height=INPUT_SIZE//4,w
     a= (cos*cos)/(2*var_x) + (sin*sin)/(2*var_y)
     b= (-2*sin*cos)/(4*var_x) + (2*sin*cos)/(4*var_y)
     c= (sin*sin)/(2*var_x) + (cos*cos)/(2*var_y)
-    #
     i= np.array(np.linspace(0,height-1,height))
     i= np.expand_dims(i,axis=1)
     i=np.repeat(i,height,axis=1)
@@ -68,18 +70,75 @@ def create_gaussian_array(variance_x,variance_y,theta,x,y,height=INPUT_SIZE//4,w
     gaussian_array= np.exp(-(a*A+b*B+c*C))
     return gaussian_array
 
+def variance_filter(variance_map, max_value_index, mask, pred_center_line, mode='average'):
+    # max_value_index : hxw
+    # how to play the tabla
+    # print(variance_map[0].shape)
+    # plt.imshow(variance_map[0][0][0].cpu().numpy())
+    # plt.show()
+    # print(variance_map[1].shape)
+    # plt.imshow(variance_map[1][0][0].cpu().numpy())
+    # plt.show()
+
+    filtered_variance_map = torch.zeros(variance_map[0].shape).float()
+    #print('cross check ', filtered_variance_map.shape)
+    #input('hlat')
+    variance_map = torch.cat(variance_map, dim=0) # scalesx3xhxw
+    pred_center_line = torch.cat(pred_center_line, dim=0)
+    pred_center_line =(pred_center_line.squeeze()>args.segmentation_threshold)*1.0
+
+    pred_center_line = pred_center_line.unsqueeze(1).repeat(1,3,1,1)
+    add_center_line = torch.sum(pred_center_line,dim=0)
+    #print('INTERMEDIATE VALUES ==>', variance_map.shape, max_value_index.shape, mask.shape)
+    #print(max_value_index)
+    mask = mask.squeeze()
+    non_zero_index = mask.nonzero()
+    scaling_factor= np.max(np.asarray(scales))/scales
+    print('scaling factor', scaling_factor)
+    if mode=='average':
+        scaling_factor = torch.from_numpy(np.asarray(scaling_factor)).cuda()
+        scaling_factor = scaling_factor.reshape(-1,1,1,1).repeat(1,2,variance_map.shape[-2], variance_map.shape[-1])
+    
+    #print('non zero index', non_zero_index)
+    for index in non_zero_index:
+        if mode=='average':
+            slice_value = variance_map[:,:,index[0],index[1]]*pred_center_line[:,:,index[0],index[1]]
+            slice_value[:,0:2]=slice_value[:,0:2]*scaling_factor[:,:,index[0],index[1]]
+            slice_value=torch.sum(slice_value,dim=0)/add_center_line[:,index[0],index[1]]
+            filtered_variance_map[0,:,index[0],index[1]]= slice_value#variance_map[mask[index[0],index[1]],:,index[0],index[1]]
+        else:
+            max_value= max_value_index[index[0],index[1]]
+            slice_value = variance_map[max_value,:,index[0],index[1]]
+            filtered_variance_map[0,:,index[0],index[1]]= slice_value#variance_map[mask[index[0],index[1]],:,index[0],index[1]]
+            filtered_variance_map[0,0,index[0],index[1]]=filtered_variance_map[0,0,index[0],index[1]]*scaling_factor[max_value_index[index[0],index[1]]]
+            filtered_variance_map[0,1,index[0],index[1]]=filtered_variance_map[0,1,index[0],index[1]]*scaling_factor[max_value_index[index[0],index[1]]]
+    # filtered_variance_map = variance_map[max_value_index,:,:,:] # 3xhxw
+    filtered_variance_map=filtered_variance_map.detach().cpu().numpy()
+    # plt.imshow(filtered_variance_map[0][0])
+    # plt.show()
+    return filtered_variance_map
+
+
 def voting(center_line_list):
     #get the minimum no of votes needed
-    min_votes_needed= len(scales)//2 + 1
+    min_votes_needed= len(scales)//2 +  1
     #perform the sum in the list
-    mask = np.zeros(center_line_list[0].shape)
+    mask = torch.zeros(center_line_list[0].shape).to(device)
 
     for scaled_center_line_image in center_line_list:
-        mask+= scaled_center_line_image
+        temp = (scaled_center_line_image.squeeze()>args.segmentation_threshold)*1.0
+        mask+= temp
 
     #perform voting
-    mask= (mask>= min_votes_needed).astype('uint8')
-    return mask
+    mask= (mask>= min_votes_needed)*1.0
+    #.astype('uint8')
+
+    center_line_list = torch.cat(center_line_list,dim=0) # scalesxhxw
+    max_value_index = torch.argmax(center_line_list,dim=0)# hxw
+    # print("max value index",max_value_index.shape,max_value_index)
+    # plt.imshow(mask.cpu().numpy()[0])
+    # plt.show()
+    return mask, max_value_index
 
 
 ######################### TESTING CODE BEGINS HERE ############################
@@ -209,36 +268,45 @@ for i,batch in enumerate(test_loader):
                 print('max value ', torch.max(score_map))
                 #plt.imshow((score_map+conceal).squeeze().cpu().numpy()*200)
                 #plt.show()
+                score_map= score_map.unsqueeze(1)
+            #score_map= (score_map>args.segmentation_threshold)*1.0
+            score_map=F.upsample(score_map, size=[max_scale,max_scale], mode='nearest')
             score_map= score_map.squeeze(0)
             score_map= score_map.squeeze(0)
-            score_map= score_map.detach().cpu().numpy()
+            #score_map= score_map.detach().cpu().numpy()
             #contour map is gaussian map
             # contour_map= contour_map.squeeze(0)
             # contour_map= contour_map.squeeze(0)
             # contour_map= contour_map.detach().cpu().numpy()
 
             #variance map contains the variances of the gaussians
+            variance_map = F.upsample(variance_map, size=[max_scale,max_scale], mode='nearest')
             variance_map= variance_map.squeeze(0)
             variance_map=variance_map.squeeze(0)
             #print("theta shape",variance_map.size())
             theta_map=  3.14*F.sigmoid(variance_map[2,:,:])
             theta_map= theta_map.detach().cpu().numpy()
             #print("theta map p",theta_map.shape)
-            variance_map= variance_map.detach().cpu().numpy()
+            #variance_map= variance_map.detach().cpu().numpy()
 
             #upsampling all the images to same scale, max scale is last element
             #note: have to do //4 since the model outputs the images of //4 size.
-            max_scale= scales[-1]//4
+            # max_scale= scales[-1]//4
 
             #need to add threshold for performing voting
-            score_map= (score_map>args.segmentation_threshold).astype('uint8')
-            score_map=cv2.resize(score_map,(max_scale,max_scale), interpolation=cv2.INTER_NEAREST)
+            # numpy code
+            # score_map= (score_map>args.segmentation_threshold).astype('uint8')
+            # score_map=cv2.resize(score_map,(max_scale,max_scale), interpolation=cv2.INTER_NEAREST)
 
-            score_map= (score_map>0).astype('uint8')
+            # # pytorch code
+            # score_map= (score_map>args.segmentation_threshold)*1
+            # score_map=F.upsample(score_map, size=[max_scale,max_scale], mode='nearest')
+
+            # score_map= (score_map>0).astype('uint8')
 
             #append the center line map and variance map for each scale
-            pred_center_line.append(score_map)
-            pred_variance_map.append(variance_map)
+            pred_center_line.append(score_map.unsqueeze(0))
+            pred_variance_map.append(variance_map.unsqueeze(0))
             del score_map,variance_map
             #print("score map",score_map.shape)
             #print("contour map",contour_map.shape)
@@ -246,27 +314,35 @@ for i,batch in enumerate(test_loader):
 
     #perform voting here
     score_map_maximum_scale= pred_center_line[-1]
-    score_map= voting(pred_center_line)
-    # plt.imshow(score_map)
+    score_map, max_value_index = voting(pred_center_line)
+    # plt.imshow(pred_variance_map[-1][0][0].cpu().squeezenumpy())
     # plt.show()
+    variance_map = variance_filter(pred_variance_map, max_value_index, score_map,pred_center_line)
+    score_map = score_map.detach().cpu().numpy()
+    score_map= (score_map>0).astype('uint8')
+
     #   score_map= ((score_map+ score_map_maximum_scale)>0)*1
     #print("after voting",np.unique(score_map),np.sum((score_map==1).astype('uint8')),score_map.shape)
 
     #the variance map to draw the gaussian will be the variance of maximum scale
-    variance_map= pred_variance_map[-1]
-    #print("variance map shape", variance_map.shape)
+    #variance_map= pred_variance_map[-1]   # commented
+    print("variance map shape", variance_map[0].shape,type(variance_map))
+    #variance_map=variance_map.squeeze(0)
+    variance_map= variance_map[0]
     variance_map_x= variance_map[0]
     variance_map_y= variance_map[1]
     #theta_map= variance_map[2]
     #prepare score map for skeletionization
     score_map_before= score_map*255
     score_map= (score_map*255).astype('uint8')
-
+    # plt.imshow(score_map[0])
+    # plt.show()
 
     #score map is a map of 0 and ones.
     #extract contours from it.
     blobs_labels = measure.label(score_map, background=0)
     ids = np.unique(blobs_labels)
+
 
     #iterate through score maps and extract a contour
     component_score_maps=[]
@@ -276,7 +352,8 @@ for i,batch in enumerate(test_loader):
         if ids[component_no]==0:
             continue
         current_score_map= (blobs_labels==ids[component_no]).astype('uint8')*255
-        # print(np.unique(current_score_map),"current score map")
+        current_score_map=current_score_map.astype('uint8')[0]
+        print(np.unique(current_score_map),"current score map",current_score_map.shape,current_score_map.dtype)
         contours,hierarchy=cv2.findContours(current_score_map, cv2.RETR_LIST,cv2.CHAIN_APPROX_NONE)
         #extract the single contour which is there
         contours= contours[0].squeeze(1)
@@ -342,6 +419,7 @@ for i,batch in enumerate(test_loader):
         n_gaussians= non_zero_arrays[0].shape[0]
         print("i",i)
         component_gaussians=[]
+        #max_scale= scales[-1]//4
         #print("n_gaussians",n_gaussians,"for image",image_id)
         if n_gaussians:
             #print("entering")
@@ -350,12 +428,14 @@ for i,batch in enumerate(test_loader):
                 y_coordinate= non_zero_arrays[1][j]
                 #print("during gaussian",component_variance_map.shape,scales[-1]//4)
                 #print("gaussian variance is ",component_variance_map[x_coordinate][y_coordinate])
-                gaussian=create_gaussian_array(component_variance_map_x[x_coordinate][y_coordinate],component_variance_map_y[x_coordinate][y_coordinate],component_theta_map[x_coordinate][y_coordinate],x_coordinate,y_coordinate,height=(scales[-1]//4),width=(scales[-1]//4))
+                gaussian=create_gaussian_array(component_variance_map_x[x_coordinate][y_coordinate],component_variance_map_y[x_coordinate][y_coordinate],component_theta_map[x_coordinate][y_coordinate],x_coordinate,y_coordinate,height=scales[-1]//4,width=scales[-1]//4)
                 component_gaussians.append(gaussian)
                 if j%100 is 0:
                     print(j)
             component_gaussians= np.stack(component_gaussians,0)
             component_gaussians= np.max(component_gaussians,0)
+            # plt.imshow(component_gaussians)
+            # plt.show()
             component_gaussians= (component_gaussians>args.gaussian_threshold).astype(int)
             component_gaussians=component_gaussians.astype('uint8')
 
@@ -407,3 +487,4 @@ for i,batch in enumerate(test_loader):
     #create dataset eval
     print("calling evaluation code upon the dataset")
     eval.generate_predictions(filtered_contour_list,meta["image_id"][0])
+

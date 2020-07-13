@@ -1,0 +1,311 @@
+========================================================
+DATE= 2020-07-13
+./results/TOTALTEXTgaussian_threshold=0.65_segmentation_threshold=0.8/ ./test_gts/
+SEGMENTATION_THRESHOLD=0.5 
+GAUSSIAN THRESHOLD =0.5 
+multiscale :[512,512+128,512+2*128+ 512*3*128] 
+========================================================
+
+filename  ./test_gts/img665.txt 0 300
+Precision: 0.6 Recall 0.75 hmean 0.6666666666666665
+filename  ./test_gts/img894.txt 1 300
+Precision: 1.0 Recall 1.0 hmean 1.0
+filename  ./test_gts/img662.txt 2 300
+Precision: 0.8666666666666667 Recall 0.9285714285714286 hmean 0.896551724137931
+filename  ./test_gts/img97.txt 3 300
+Precision: 1.0 Recall 0.8333333333333334 hmean 0.9090909090909091
+filename  ./test_gts/img494.txt 4 300
+Precision: 0.6666666666666666 Recall 1.0 hmean 0.8
+filename  ./test_gts/img640.txt 5 300
+Precision: 0.7142857142857143 Recall 1.0 hmean 0.8333333333333333
+filename  ./test_gts/img1198.txt 6 300
+Precision: 1.0 Recall 1.0 hmean 1.0
+filename  ./test_gts/img676.txt 7 300
+Precision: 0.26666666666666666 Recall 0.6666666666666666 hmean 0.3809523809523809
+filename  ./test_gts/img1546.txt 8 300
+Precision: 1.0 Recall 1.0 hmean 1.0
+filename  ./test_gts/img580.txt 9 300
+Precision: 1.0 Recall 1.0 hmean 1.0
+filename  ./test_gts/img1097.txt 10 300
+Precision: 0.8888888888888888 Recall 1.0 hmean 0.9411764705882353
+filename  ./test_gts/img1197.txt 11 300
+Precision: 0.75 Recall 0.6 hmean 0.6666666666666665
+filename  ./test_gts/img636.txt 12 300
+Precision: 0.8888888888888888 Recall 0.8 hmean 0.8421052631578948
+filename  ./test_gts/img562.txt 13 300
+Precision: 0.1 Recall 0.5 hmean 0.16666666666666669
+filename  ./test_gts/img663.txt 14 300
+Precision: 0.7142857142857143 Recall 1.0 hmean 0.8333333333333333
+filename  ./test_gts/img95.txt 15 300
+Precision: 1.0 Recall 1.0 hmean 1.0
+filename  ./test_gts/img1099.txt 16 300
+Precision: 1.0 Recall 0.8333333333333334 hmean 0.9090909090909091
+filename  ./test_gts/img1192.txt 17 300
+Precision: 1.0 Recall 0.75 hmean 0.8571428571428571
+filename  ./test_gts/img572.txt 18 300
+Precision: 0.6190476190476191 Recall 0.9285714285714286 hmean 0.742857142857143
+filename  ./test_gts/img1193.txt 19 300
+Precision: 1.0 Recall 0.6 hmean 0.7499999999999999
+filename  ./test_gts/img197.txt 20 300
+Precision: 1.0 Recall 1.0 hmean 1.0
+filename  ./test_gts/img625.txt 21 300
+Precision: 1.0 Recall 1.0 hmean 1.0
+filename  ./test_gts/img559.txt 22 300
+Precision: 1.0 Recall 1.0 hmean 1.0
+filename  ./test_gts/img495.txt 23 300
+Precision: 0.875 Recall 0.875 hmean 0.875
+filename  ./test_gts/img1194.txt 24 300
+Precision: 0.75 Recall 1.0 hmean 0.8571428571428571
+filename  ./test_gts/img91.txt 25 300
+Precision: 1.0 Recall 1.0 hmean 1.0
+filename  ./test_gts/img1398.txt 26 300
+Precision: 0.8 Recall 0.8888888888888888 hmean 0.8421052631578948
+filename  ./test_gts/img1547.txt 27 300
+Precision: 1.0 Recall 1.0 hmean 1.0
+filename  ./test_gts/img567.txt 28 300
+Precision: 0.8333333333333334 Recall 0.8333333333333334 hmean 0.8333333333333334
+filename  ./test_gts/img647.txt 29 300
+Precision: 0.8 Recall 1.0 hmean 0.888888888888889
+filename  ./test_gts/img1551.txt 30 300
+Precision: 0 Recall 0.0 hmean 0
+filename  ./test_gts/img1553.txt 31 300
+Precision: 0.6 Recall 0.6428571428571429 hmean 0.6206896551724138
+filename  ./test_gts/img396.txt 32 300
+Precision: 0.75 Recall 1.0 hmean 0.8571428571428571
+filename  ./test_gts/img661.txt 33 300
+Precision: 0.6666666666666666 Recall 0.8888888888888888 hmean 0.761904761904762
+filename  ./test_gts/img653.txt 34 300
+Precision: 0.8571428571428571 Recall 0.8571428571428571 hmean 0.8571428571428571
+filename  ./test_gts/img93.txt 35 300
+Precision: 0.4 Recall 0.3333333333333333 hmean 0.3636363636363636
+filename  ./test_gts/img400.txt 36 300
+Precision: 1.0 Recall 1.0 hmean 1.0
+filename  ./test_gts/img1055.txt 37 300
+Precision: 1.0 Recall 1.0 hmean 1.0
+filename  ./test_gts/img1298.txt 38 300
+Precision: 0.25 Recall 0.6666666666666666 hmean 0.36363636363636365
+filename  ./test_gts/img393.txt 39 300
+Precision: 1.0 Recall 1.0 hmean 1.0
+filename  ./test_gts/img10.txt 40 300
+Precision: 1.0 Recall 0.6 hmean 0.7499999999999999
+filename  ./test_gts/img198.txt 41 300
+Precision: 1.0 Recall 0.5 hmean 0.6666666666666666
+filename  ./test_gts/img192.txt 42 300
+Precision: 1.0 Recall 1.0 hmean 1.0
+filename  ./test_gts/img295.txt 43 300
+Precision: 0.25 Recall 1.0 hmean 0.4
+filename  ./test_gts/img618.txt 44 300
+Precision: 0.9090909090909091 Recall 0.8333333333333334 hmean 0.8695652173913043
+filename  ./test_gts/img9.txt 45 300
+Precision: 1.0 Recall 1.0 hmean 1.0
+filename  ./test_gts/img555.txt 46 300
+Precision: 0.42857142857142855 Recall 0.75 hmean 0.5454545454545454
+filename  ./test_gts/img195.txt 47 300
+Precision: 0.7692307692307693 Recall 1.0 hmean 0.8695652173913044
+filename  ./test_gts/img668.txt 48 300
+Precision: 0.9230769230769231 Recall 0.8 hmean 0.8571428571428571
+filename  ./test_gts/img624.txt 49 300
+Precision: 1.0 Recall 1.0 hmean 1.0
+filename  ./test_gts/img652.txt 50 300
+Precision: 0.9 Recall 0.75 hmean 0.8181818181818182
+filename  ./test_gts/img2.txt 51 300
+Precision: 0.6666666666666666 Recall 0.8571428571428571 hmean 0.75
+filename  ./test_gts/img547.txt 52 300
+Precision: 0.8 Recall 0.8888888888888888 hmean 0.8421052631578948
+filename  ./test_gts/img575.txt 53 300
+Precision: 0.5 Recall 0.5 hmean 0.5
+filename  ./test_gts/img648.txt 54 300
+Precision: 0.75 Recall 0.6666666666666666 hmean 0.7058823529411765
+filename  ./test_gts/img996.txt 55 300
+Precision: 0.75 Recall 0.8571428571428571 hmean 0.7999999999999999
+filename  ./test_gts/img1300.txt 56 300
+Precision: 0.5 Recall 0.3333333333333333 hmean 0.4
+filename  ./test_gts/img560.txt 57 300
+Precision: 0.8888888888888888 Recall 0.8888888888888888 hmean 0.8888888888888888
+filename  ./test_gts/img545.txt 58 300
+Precision: 1.0 Recall 1.0 hmean 1.0
+filename  ./test_gts/img621.txt 59 300
+Precision: 0.8 Recall 1.0 hmean 0.888888888888889
+filename  ./test_gts/img1395.txt 60 300
+Precision: 1.0 Recall 1.0 hmean 1.0
+filename  ./test_gts/img7.txt 61 300
+Precision: 1.0 Recall 1.0 hmean 1.0
+filename  ./test_gts/img994.txt 62 300
+Precision: 1.0 Recall 1.0 hmean 1.0
+filename  ./test_gts/img592.txt 63 300
+Precision: 1.0 Recall 1.0 hmean 1.0
+filename  ./test_gts/img565.txt 64 300
+Precision: 0.125 Recall 0.25 hmean 0.16666666666666666
+filename  ./test_gts/img534.txt 65 300
+Precision: 0.8571428571428571 Recall 1.0 hmean 0.923076923076923
+filename  ./test_gts/img296.txt 66 300
+Precision: 0.6 Recall 1.0 hmean 0.7499999999999999
+filename  ./test_gts/img596.txt 67 300
+Precision: 0.8571428571428571 Recall 0.8571428571428571 hmean 0.8571428571428571
+filename  ./test_gts/img3.txt 68 300
+Precision: 0.6666666666666666 Recall 1.0 hmean 0.8
+filename  ./test_gts/img897.txt 69 300
+Precision: 1.0 Recall 1.0 hmean 1.0
+filename  ./test_gts/img536.txt 70 300
+Precision: 1.0 Recall 0.75 hmean 0.8571428571428571
+filename  ./test_gts/img620.txt 71 300
+Precision: 1.0 Recall 1.0 hmean 1.0
+filename  ./test_gts/img588.txt 72 300
+Precision: 0.875 Recall 0.7777777777777778 hmean 0.823529411764706
+filename  ./test_gts/img992.txt 73 300
+Precision: 0.875 Recall 1.0 hmean 0.9333333333333333
+filename  ./test_gts/img664.txt 74 300
+Precision: 0.7 Recall 0.6 hmean 0.6461538461538462
+filename  ./test_gts/img1100.txt 75 300
+Precision: 0.5555555555555556 Recall 1.0 hmean 0.7142857142857143
+filename  ./test_gts/img614.txt 76 300
+Precision: 0.6666666666666666 Recall 0.8888888888888888 hmean 0.761904761904762
+filename  ./test_gts/img544.txt 77 300
+Precision: 1.0 Recall 1.0 hmean 1.0
+filename  ./test_gts/img194.txt 78 300
+Precision: 0.8421052631578947 Recall 0.7272727272727273 hmean 0.7804878048780488
+filename  ./test_gts/img492.txt 79 300
+Precision: 0 Recall 0.0 hmean 0
+filename  ./test_gts/img637.txt 80 300
+Precision: 1.0 Recall 1.0 hmean 1.0
+filename  ./test_gts/img793.txt 81 300
+Precision: 0.7906976744186046 Recall 0.85 hmean 0.8192771084337349
+filename  ./test_gts/img578.txt 82 300
+Precision: 1.0 Recall 0.8 hmean 0.888888888888889
+filename  ./test_gts/img893.txt 83 300
+Precision: 0.35714285714285715 Recall 0.9090909090909091 hmean 0.5128205128205129
+filename  ./test_gts/img600.txt 84 300
+Precision: 0.9166666666666666 Recall 0.9565217391304348 hmean 0.9361702127659574
+filename  ./test_gts/img791.txt 85 300
+Precision: 0.9142857142857143 Recall 0.9696969696969697 hmean 0.9411764705882354
+filename  ./test_gts/img626.txt 86 300
+Precision: 0.8 Recall 1.0 hmean 0.888888888888889
+filename  ./test_gts/img395.txt 87 300
+Precision: 1.0 Recall 1.0 hmean 1.0
+filename  ./test_gts/img499.txt 88 300
+Precision: 0.875 Recall 0.7777777777777778 hmean 0.823529411764706
+filename  ./test_gts/img585.txt 89 300
+Precision: 0.6666666666666666 Recall 1.0 hmean 0.8
+filename  ./test_gts/img498.txt 90 300
+Precision: 1.0 Recall 1.0 hmean 1.0
+filename  ./test_gts/img558.txt 91 300
+Precision: 1.0 Recall 0.9444444444444444 hmean 0.9714285714285714
+filename  ./test_gts/img394.txt 92 300
+Precision: 1.0 Recall 1.0 hmean 1.0
+filename  ./test_gts/img96.txt 93 300
+Precision: 1.0 Recall 1.0 hmean 1.0
+filename  ./test_gts/img660.txt 94 300
+Precision: 0.75 Recall 0.5 hmean 0.6
+filename  ./test_gts/img1397.txt 95 300
+Precision: 0.9166666666666666 Recall 0.8461538461538461 hmean 0.8799999999999999
+filename  ./test_gts/img659.txt 96 300
+Precision: 0.5555555555555556 Recall 0.6666666666666666 hmean 0.606060606060606
+filename  ./test_gts/img623.txt 97 300
+Precision: 0.7777777777777778 Recall 0.875 hmean 0.823529411764706
+filename  ./test_gts/img589.txt 98 300
+Precision: 1.0 Recall 1.0 hmean 1.0
+filename  ./test_gts/img632.txt 99 300
+Precision: 1.0 Recall 0.9 hmean 0.9473684210526316
+filename  ./test_gts/img98.txt 100 300
+Precision: 1.0 Recall 1.0 hmean 1.0
+filename  ./test_gts/img577.txt 101 300
+Precision: 0.2 Recall 0.5 hmean 0.28571428571428575
+filename  ./test_gts/img291.txt 102 300
+Precision: 0.8 Recall 1.0 hmean 0.888888888888889
+filename  ./test_gts/img193.txt 103 300
+Precision: 0.5 Recall 1.0 hmean 0.6666666666666666
+filename  ./test_gts/img677.txt 104 300
+Precision: 0.6 Recall 1.0 hmean 0.7499999999999999
+filename  ./test_gts/img1293.txt 105 300
+Precision: 1.0 Recall 0.7142857142857143 hmean 0.8333333333333333
+filename  ./test_gts/img1095.txt 106 300
+Precision: 0.75 Recall 0.75 hmean 0.75
+filename  ./test_gts/img546.txt 107 300
+Precision: 0.6923076923076923 Recall 0.6923076923076923 hmean 0.6923076923076923
+filename  ./test_gts/img298.txt 108 300
+Precision: 1.0 Recall 1.0 hmean 1.0
+filename  ./test_gts/img628.txt 109 300
+Precision: 1.0 Recall 1.0 hmean 1.0
+filename  ./test_gts/img564.txt 110 300
+Precision: 0.8181818181818182 Recall 0.9 hmean 0.8571428571428572
+filename  ./test_gts/img604.txt 111 300
+Precision: 1.0 Recall 1.0 hmean 1.0
+filename  ./test_gts/img1399.txt 112 300
+Precision: 0.6666666666666666 Recall 0.5714285714285714 hmean 0.6153846153846153
+filename  ./test_gts/img613.txt 113 300
+Precision: 0.5 Recall 1.0 hmean 0.6666666666666666
+filename  ./test_gts/img799.txt 114 300
+Precision: 0.25 Recall 0.3333333333333333 hmean 0.28571428571428575
+filename  ./test_gts/img586.txt 115 300
+Precision: 0.75 Recall 1.0 hmean 0.8571428571428571
+filename  ./test_gts/img4.txt 116 300
+Precision: 0.7857142857142857 Recall 1.0 hmean 0.88
+filename  ./test_gts/img1544.txt 117 300
+Precision: 0.75 Recall 0.6 hmean 0.6666666666666665
+filename  ./test_gts/img610.txt 118 300
+Precision: 0 Recall 0.0 hmean 0
+filename  ./test_gts/img1096.txt 119 300
+Precision: 0.9444444444444444 Recall 0.8947368421052632 hmean 0.918918918918919
+filename  ./test_gts/img672.txt 120 300
+Precision: 0.7368421052631579 Recall 0.8235294117647058 hmean 0.7777777777777778
+filename  ./test_gts/img641.txt 121 300
+Precision: 1.0 Recall 1.0 hmean 1.0
+filename  ./test_gts/img795.txt 122 300
+Precision: 0.7272727272727273 Recall 0.8888888888888888 hmean 0.7999999999999999
+filename  ./test_gts/img995.txt 123 300
+Precision: 0.875 Recall 0.875 hmean 0.875
+filename  ./test_gts/img1552.txt 124 300
+Precision: 0.7222222222222222 Recall 0.8666666666666667 hmean 0.7878787878787877
+filename  ./test_gts/img678.txt 125 300
+Precision: 0.75 Recall 1.0 hmean 0.8571428571428571
+filename  ./test_gts/img1400.txt 126 300
+Precision: 0.3333333333333333 Recall 0.3333333333333333 hmean 0.3333333333333333
+filename  ./test_gts/img497.txt 127 300
+Precision: 0.6428571428571429 Recall 0.47368421052631576 hmean 0.5454545454545454
+filename  ./test_gts/img674.txt 128 300
+Precision: 0.7333333333333333 Recall 0.8461538461538461 hmean 0.7857142857142856
+filename  ./test_gts/img895.txt 129 300
+Precision: 0.0 Recall 0.0 hmean 0
+filename  ./test_gts/img1000.txt 130 300
+Precision: 1.0 Recall 1.0 hmean 1.0
+filename  ./test_gts/img629.txt 131 300
+Precision: 1.0 Recall 1.0 hmean 1.0
+filename  ./test_gts/img496.txt 132 300
+Precision: 1.0 Recall 1.0 hmean 1.0
+filename  ./test_gts/img1555.txt 133 300
+Precision: 1.0 Recall 1.0 hmean 1.0
+filename  ./test_gts/img609.txt 134 300
+Precision: 1.0 Recall 1.0 hmean 1.0
+filename  ./test_gts/img900.txt 135 300
+Precision: 0.0 Recall 0.0 hmean 0
+filename  ./test_gts/img794.txt 136 300
+Precision: 0.125 Recall 0.3333333333333333 hmean 0.18181818181818182
+filename  ./test_gts/img398.txt 137 300
+Precision: 0.9166666666666666 Recall 1.0 hmean 0.9565217391304348
+filename  ./test_gts/img570.txt 138 300
+Precision: 1.0 Recall 1.0 hmean 1.0
+filename  ./test_gts/img531.txt 139 300
+Precision: 0.6875 Recall 0.7857142857142857 hmean 0.7333333333333334
+filename  ./test_gts/img583.txt 140 300
+Precision: 0.3333333333333333 Recall 0.6666666666666666 hmean 0.4444444444444444
+filename  ./test_gts/img1196.txt 141 300
+Precision: 1.0 Recall 1.0 hmean 1.0
+filename  ./test_gts/img1091.txt 142 300
+Precision: 0.6 Recall 0.6 hmean 0.6
+filename  ./test_gts/img533.txt 143 300
+Precision: 1.0 Recall 1.0 hmean 1.0
+filename  ./test_gts/img649.txt 144 300
+Precision: 0.6363636363636364 Recall 0.875 hmean 0.7368421052631579
+filename  ./test_gts/img535.txt 145 300
+Precision: 0.6666666666666666 Recall 0.4444444444444444 hmean 0.5333333333333333
+filename  ./test_gts/img595.txt 146 300
+Precision: 0.8333333333333334 Recall 0.7142857142857143 hmean 0.7692307692307692
+filename  ./test_gts/img998.txt 147 300
+Precision: 1.0 Recall 1.0 hmean 1.0
+filename  ./test_gts/img607.txt 148 300
+Precision: 1.0 Recall 1.0 hmean 1.0
+filename  ./test_gts/img651.txt 149 300
+Precision: 1.0 Recall 1.0 hmean 1.0
+filename  ./test_gts/img6.txt 150 300
+Precision: 1.0 Recall 1.0 hmean 1.0
+filename  ./test_gts/img643.txt 151 300

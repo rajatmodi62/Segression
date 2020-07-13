@@ -77,7 +77,7 @@ class TotalText(TextDataset):
 
         # Read image data
         image = pil_load_img(image_path)
-        image= aug_image(image,self.texture_list)
+        #image= aug_image(image,self.texture_list)
         # Read annotation
         annotation_id = self.annotation_list[item]
         #

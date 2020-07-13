@@ -93,7 +93,7 @@ multiscale :"+args.scaling_list+" \n\
 ========================================================\n")
 	for i,file_gt in enumerate(file_list_gt):
 		print('filename ', file_gt, i,len(file_list_gt))
-		file_pred = os.path.join(pred_path,'res'+file_gt.split(os.sep)[-1][2:])
+		file_pred = os.path.join(pred_path,'res_'+file_gt.split(os.sep)[-1])
 		gt = create_dictionary_for_gt(file_gt, type='poly')
 		pred = create_dictionary_for_pred(file_pred,type='without_confidence')
 		results = []
