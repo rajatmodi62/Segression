@@ -147,7 +147,7 @@ class Segression(nn.Module):
         ########################################################################
 
         #make a pass through backbone
-        x= self.backbone(x)
+        x,low_res_feature= self.backbone(x)
 
         #compute variance map
         variance= self.variance_conv(x)
@@ -168,7 +168,7 @@ class Segression(nn.Module):
         ########################################################################
 
         #compute center line segmentation
-        center_line_segmentation= self.segmentation_head_1(x)
+        center_line_segmentation= self.segmentation_head_1(x,low_res_feature)
 
 
 
@@ -209,8 +209,12 @@ class Segression(nn.Module):
         else:
             raise Exception("Model should be operated in train/test mode only")
 if __name__ == '__main__':
-    segression= Segression(backbone= "DB",\
-                            segression_dimension=3,\
-                            out_channels=256).to(device)
-    x= torch.randn(2,3,256,512).to(device)
-    o= segression(x)
+    model=Segression(center_line_segmentation_threshold=0.999,\
+                    backbone="VGG",\
+                    segression_dimension= 3,\
+                    n_classes=1,\
+                    attention=False,\
+                    ).to(device)
+    x= torch.randn(2,3,512,512).to(device)
+    segmentation_map=torch.randn(1,1,128,128).to(device)
+    gaussian_segmentation,center_line_segmentation, variance,meta= model(x,segmentation_map)

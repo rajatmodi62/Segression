@@ -161,13 +161,14 @@ class VGGWrapper(nn.Module):
          # assert x.size()[1]==self.in_channels,\
          #        "Initialized in_channel & Input Tensor's in_channel must be same"
          x= self.encoder(x)
+         #print(x[0].size(),x[3].size(),"hello")
+         low_res_feature= x[-1]
          x= self.decoder(x)
-
-         return x
+         return x,low_res_feature
 
 if __name__ == '__main__':
         print("main")
         vgg=VGGWrapper(in_channels=3)
-        x= torch.randn(2,3,256,512)
+        x= torch.randn(2,3,512,512)
         output=vgg(x)
         print("done",output.shape)

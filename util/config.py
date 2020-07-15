@@ -20,7 +20,7 @@ config.lr = 1e-4
 # using GPU
 config.cuda = True
 
-config.n_disk = 30
+config.n_disk = 15
 
 config.output_dir = 'output'
 

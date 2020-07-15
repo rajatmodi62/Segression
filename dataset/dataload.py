@@ -82,7 +82,7 @@ class TextDataset(data.Dataset):
         super().__init__()
 
         self.transform = transform
-        self.texture_list = glob.glob("data/dtd/images/*/*.jpg")
+        self.texture_list = glob.glob("data_1/dtd/images/*/*.jpg")
     def parse_mat(self, mat_path):
         """
         .mat file parser
@@ -178,6 +178,7 @@ class TextDataset(data.Dataset):
     def create_compressed_gt(self,polygons,center_line_map, type='contour_border', viz=False):
 
         gt= np.zeros((128,128), np.uint8)
+        gt_original_scale = np.zeros((512,512),np.uint8)
         three_class = np.zeros((3,128,128), np.uint8)
 
         polygon_edges= np.zeros((128,128), np.uint8)
@@ -185,9 +186,12 @@ class TextDataset(data.Dataset):
         for i, polygon in enumerate(polygons):
             temp_edges= np.zeros((128,128), np.uint8)
             if polygon.text != '#':
+                orignal_scale_point_list =polygon.points.astype(int)
                 point_list= polygon.points.astype(int)//4
                 #print("in draw contour",point_list.shape)
                 cv2.drawContours(gt,[point_list],-1,(1,1,1),-1)
+                cv2.drawContours(gt_original_scale,[orignal_scale_point_list],-1,(1,1,1),-1)
+
                 cv2.drawContours(temp_edges,[point_list],-1,(1,1,1),-1)
                 sobelx = cv2.Sobel(temp_edges,cv2.CV_64F,1,0,ksize=3)
                 sobely = cv2.Sobel(temp_edges,cv2.CV_64F,0,1,ksize=3)
@@ -221,7 +225,7 @@ class TextDataset(data.Dataset):
         # elif type=='contour_border':
         #     return contour_edges
         # else:
-        return [gt,polygon_edges, contour_edges, three_class]
+        return [gt,polygon_edges, contour_edges, three_class, gt_original_scale]
 
     def get_training_data(self, image, polygons, image_id, image_path,gt_mat_path):
         #print("during entry image shape is",image.shape)
