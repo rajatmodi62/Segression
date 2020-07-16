@@ -24,17 +24,17 @@ class EvalOutputs():
         if os.path.isdir(str(self.dataset_dir)):
             sh.rmtree(str(self.dataset_dir))
         #create dir containing the dataset
-        (self.dataset_dir).mkdir(exist_ok=True, parents=True)
-
+        (self.dataset_dir/'gaussian_maps').mkdir(exist_ok=True, parents=True)
+        (self.dataset_dir/'center_line_maps').mkdir(exist_ok=True, parents=True)
     '''
     Swap=False dump x, y predictions
     Swap= True dums y,x predictions
     '''
-    def generate_x_y_output(self,contour_list,image_id,swap=False):
+    def generate_x_y_output(self,contour_list,center_line_list,image_id,swap=False):
         #strip image_id and save as txt
         image_id= image_id.split('.')[0]+'.txt'
         print('============>IMAGE ID',image_id)
-        pred_path= str(self.dataset_dir/('res_'+image_id))
+        pred_path= str(self.dataset_dir/'gaussian_maps'/('res_'+image_id))
         fid = open(pred_path, 'a')
         content=''
 
@@ -61,6 +61,35 @@ class EvalOutputs():
             content=''
         fid.close()
 
+
+
+        pred_path= str(self.dataset_dir/'center_line_maps'/('res_'+image_id))
+        fid = open(pred_path, 'a')
+        content=''
+
+        for center_line in center_line_list:
+
+            #skip the contours that dont satisfy the area threshold
+            if center_line=='':
+                continue
+            rows,cols= center_line.shape
+            print("rows",rows,"cols",cols)
+            for row in range(rows):
+
+                item=center_line[row,:]
+                x= item[0]
+                y= item[1]
+                if swap:
+                    content+=str(y)+','+str(x)+','
+                else:
+                    content+=str(x)+','+str(y)+','
+            #remove last comma
+
+            content= content[:-1]+'\n'
+            fid.write(content)
+            #reset
+            content=''
+        fid.close()
     '''
     Input:
         contour_list: list of contours. [Numpy arrays <row,2>]
@@ -69,17 +98,17 @@ class EvalOutputs():
     '''
 
 
-    def generate_predictions(self,contour_list,image_id):
+    def generate_predictions(self,contour_list,center_line_list,image_id):
         #check dataset & accordingly process
         if self.dataset=='CTW1500':
 
-            self.generate_x_y_output(contour_list,image_id,swap=False)
+            self.generate_x_y_output(contour_list,center_line_list,image_id,swap=False)
             # write command for executing the evaluation script
             #os.system('python ')
 
         elif self.dataset=='TOTALTEXT':
 
-            self.generate_x_y_output(contour_list,image_id,swap=False)
+            self.generate_x_y_output(contour_list,center_line_list,image_id,swap=False)
             # write command for executing the evaluation script
             #os.system('python Deteval.py ')
 
@@ -89,7 +118,7 @@ class EvalOutputs():
             raise Exception("Prediction Error:Invalid Dataset given")
 
         elif self.dataset=='ICDAR2015':
-            self.generate_x_y_output(contour_list,'res_'+image_id,swap=False)
+            self.generate_x_y_output(contour_list,center_line_list,'res_'+image_id,swap=False)
             #to handle
             #raise Exception("Prediction Error:Invalid Dataset given")
 
