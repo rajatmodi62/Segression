@@ -22,6 +22,7 @@ from pathlib import Path
 import math
 import torch.nn.functional as F
 import argparse
+from merge import merger 
 
 print("All requisite testing modules loaded")
 
@@ -471,6 +472,11 @@ for i,batch in enumerate(test_loader):
 
     filtered_contour_list=sample_contours
 
+    # merge the predictions 
+    filtered_contour_list = merger(filtered_contour_list, variance_map,meta["image_id"][0], viz=False)
+
+
+
     for j in range(len(filtered_contour_list)):
 
         scaling=[scaling_factor_x,scaling_factor_y]
@@ -483,6 +489,7 @@ for i,batch in enumerate(test_loader):
 
     #print(" filtered contour shape",filtered_contour_list[0].shape)
     print(" meta",meta["image_id"])
+
 
     #create dataset eval
     print("calling evaluation code upon the dataset")

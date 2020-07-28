@@ -129,7 +129,7 @@ def find_bottom(pts):
         bottoms = [(0, 1), (2, 3)] if d1 < d2 else [(1, 2), (3, 0)]
     assert len(bottoms) == 2, 'fewer than 2 bottoms'
     #finally return the two edges which can be the head and snake of our text instance.
-
+    #print(bottoms[0])
 
     return bottoms
 

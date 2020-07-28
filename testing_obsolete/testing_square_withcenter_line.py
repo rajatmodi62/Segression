@@ -30,9 +30,12 @@ print("All requisite testing modules loaded")
 os.system("nvidia-smi | grep 'python' | awk '{ print $3 }' | xargs -n1 kill -9")
 #enter scales in a sorted increasing order
 #scales= [512-128,512,512+128,512+2*128,1024,1024+128]
-scales= [512-128,512,512+128,512+2*128,1024]
+# scales= [512-128,512,512+128,512+2*128,1024]
 #scales= [512,512+128,512+2*128,1024]
-#scales= [512,512+2*128,1024, 1024+512]
+#scales= [512,512+128,512+2*128,1024,1024+256,1024+512]  # finalized scales 
+scales= [512,512+128,512+2*128,1024, 1024+256, 1024+512]
+
+
 #256,512,512+256,512+128
 # scales= [512+2*128]
 
@@ -424,4 +427,4 @@ for i,batch in enumerate(test_loader):
 
     #create dataset eval
     print("calling evaluation code upon the dataset")
-    eval.generate_predictions(filtered_contour_list,filtered_center_line_list,meta["image_id"][0])
+    eval.generate_predictions(filtered_contour_list,meta["image_id"][0],filtered_center_line_list,)

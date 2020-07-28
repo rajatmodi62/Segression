@@ -18,7 +18,7 @@ Input: Dataset which is to be tested
 
 class TestDataLoader(data.Dataset):
 
-    def __init__(self,dataset='TOTALTEXT',scales=[512]):
+    def __init__(self,dataset='TOTALTEXT',scales=[512],test_dir=""):
         super().__init__()
         #get the list of image path
 
@@ -40,7 +40,10 @@ class TestDataLoader(data.Dataset):
 
         else:
             raise Exception("Invalid Dataset given")
-
+        
+        #update the testing dir to the passed test_dir otherwise 
+        if test_dir:
+            self.test_img_dir=test_dir
         self.test_img_path= [os.path.join(self.test_img_dir,path) \
                             for path in os.listdir(self.test_img_dir)]
 

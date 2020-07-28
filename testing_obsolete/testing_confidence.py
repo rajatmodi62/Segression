@@ -29,7 +29,7 @@ print("All requisite testing modules loaded")
 #free the gpus
 os.system("nvidia-smi | grep 'python' | awk '{ print $3 }' | xargs -n1 kill -9")
 #enter scales in a sorted increasing order
-#scales= [512-128,512,512+128,512+2*128,1024, 1024+256]
+# scales= [512-128,512,512+128,512+2*128,1024, 1024+256]
 scales= [512,512+128,512+2*128,1024, 1024+256, 1024+512]
 
 scaling_factor= np.max(np.asarray(scales))/scales
@@ -161,6 +161,8 @@ parser.add_argument("--out-channels", type=int, default=32,
                         help="Save summaries and checkpoint every often.")
 parser.add_argument("--n-classes", type=int, default=1,
                         help="number of classes in segmentation head.")
+parser.add_argument("--lstm_threshold", type=float, default=0.8,
+						help="Enter lstm threshold")
 args = parser.parse_args()
 
 ################################################################################
@@ -255,7 +257,7 @@ for i,batch in enumerate(test_loader):
         image= image.to(device)
         #forward pass
         with torch.no_grad():
-            score_map, variance_map= model(image)
+            score_map, variance_map,_= model(image)
             # if flag==True:
             #     # print('EXCEPTION ------------------------------------>')
             #     continue
