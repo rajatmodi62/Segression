@@ -17,6 +17,8 @@ parser.add_argument("--dataset", type=str, default="TOTALTEXT",
 
 parser.add_argument("--pred-dir", type=str, default="results/TOTALTEXTgaussian_threshold=0.6_segmentation_threshold=0.4",
                     help="Path to the snapshot to be used for testing")
+parser.add_argument("--dir-root", type=str, default="",
+                    help="Enter the dir from where gt is to be picked up")
 
 # parser.add_argument("--dump-dir", type=str, default="results/TOTALTEXTgaussian_threshold=0.6_segmentation_threshold=0.4",
 #                     help="Path to the snapshot to be used for testing")
@@ -224,7 +226,9 @@ elif args.dataset=='TOTALTEXT':
     dir_root= 'data/total-text'
 else:
     raise Exception("Invalid Dataset given")
-
+#manually set the path if passed as argument 
+if args.dir_root:
+    dir_root= args.dir_root
 #prediction_path='results/TOTALTEXTgaussian_threshold=0.6_segmentation_threshold=0.4'
 image_dir = os.path.join(dir_root, 'Images/Test')
 gt_dir =os.path.join(dir_root, 'gt/Test')

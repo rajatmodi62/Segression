@@ -148,7 +148,7 @@ class Segression(nn.Module):
 
         #make a pass through backbone
         x,low_res_feature= self.backbone(x)
-
+        backbone_feature= x
         #compute variance map
         variance= self.variance_conv(x)
 
@@ -204,7 +204,7 @@ class Segression(nn.Module):
         elif self.mode== 'test':
             #dont return gaussian map since it is explicitly drawn in the training code
             #print("performing testing")
-            return center_line_segmentation,variance
+            return center_line_segmentation,variance,backbone_feature
 
         else:
             raise Exception("Model should be operated in train/test mode only")

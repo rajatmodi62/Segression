@@ -19,7 +19,8 @@ class EvalOutputs():
         self.dataset= args.dataset
         self.dataset_dir=(self.local_data_path/'results'/(self.dataset+\
                             'gaussian_threshold='+str(args.gaussian_threshold)+\
-                            '_segmentation_threshold='+ str(args.segmentation_threshold)))
+                            '_segmentation_threshold='+ str(args.segmentation_threshold)+\
+                            '_lstm_threshold='+ str(args.lstm_threshold)))
         # #delete existing predictions
         if os.path.isdir(str(self.dataset_dir)):
             sh.rmtree(str(self.dataset_dir))
@@ -62,7 +63,7 @@ class EvalOutputs():
         fid.close()
 
 
-
+        
         pred_path= str(self.dataset_dir/'center_line_maps'/('res_'+image_id))
         fid = open(pred_path, 'a')
         content=''
@@ -98,7 +99,7 @@ class EvalOutputs():
     '''
 
 
-    def generate_predictions(self,contour_list,center_line_list,image_id):
+    def generate_predictions(self,contour_list,image_id,center_line_list):
         #check dataset & accordingly process
         if self.dataset=='CTW1500':
 

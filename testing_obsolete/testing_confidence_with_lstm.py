@@ -22,6 +22,7 @@ from pathlib import Path
 import math
 import torch.nn.functional as F
 import argparse
+from model.lstm import BreakLine_v2
 
 print("All requisite testing modules loaded")
 
@@ -29,7 +30,7 @@ print("All requisite testing modules loaded")
 #free the gpus
 os.system("nvidia-smi | grep 'python' | awk '{ print $3 }' | xargs -n1 kill -9")
 #enter scales in a sorted increasing order
-# scales= [512-128,512,512+128,512+2*128,1024, 1024+256]
+#scales= [512-128,512,512+128,512+2*128,1024, 1024+256]
 scales= [512,512+128,512+2*128,1024, 1024+256, 1024+512]
 
 scaling_factor= np.max(np.asarray(scales))/scales
@@ -140,6 +141,24 @@ def voting(center_line_list):
     # plt.show()
     return mask, max_value_index
 
+def construct_input( coordinate_sequence, feature_map):
+    # batch_size = batch_extractor['coordinate_sequence'].shape[0]
+    # coordinate_sequence = batch_extractor['coordinate_sequence']
+    # length_vector = batch_extractor['length']
+    # ground_truth = batch_extractor['gt']
+    # valid = batch_extractor['valid']
+
+    # print('check the argumnents ', batch_size, coordinate_sequence.shape, length_vector, ground_truth.shape)
+    # input('halt')
+    #  (seq_len, batch, input_size)
+    instance_length = coordinate_sequence.shape[0]
+    input_lstm = torch.zeros(instance_length, 1, out_channels=32)
+    for len in range(instance_length):
+        coordinate = coordinate_sequence[len,:]   # x,y
+        input_lstm [len,0,:] = feature_map[0,:,coordinate[0], coordinate[1]].squeeze()
+    #input_lstm = Variable(input_lstm)
+    #ground_truth = Variable(ground_truth)    
+    return  input_lstm,instance_length
 
 ######################### TESTING CODE BEGINS HERE ############################
 
@@ -161,8 +180,6 @@ parser.add_argument("--out-channels", type=int, default=32,
                         help="Save summaries and checkpoint every often.")
 parser.add_argument("--n-classes", type=int, default=1,
                         help="number of classes in segmentation head.")
-parser.add_argument("--lstm_threshold", type=float, default=0.8,
-						help="Enter lstm threshold")
 args = parser.parse_args()
 
 ################################################################################
@@ -211,12 +228,18 @@ model= Segression(center_line_segmentation_threshold=args.segmentation_threshold
                     out_channels= args.out_channels,\
                     n_classes=args.n_classes,\
                     mode='test').to(device)
+hidden_size=64
+lstm_model = BreakLine_v2( hidden_size=hidden_size,output_size=1,feature_feature=32).cuda()
 
 #load checkpoint
 print("trying to load snapshot: ", args.snapshot_dir)
 model.load_state_dict(torch.load(args.snapshot_dir,map_location=device),strict=True)
+lstm_model.load_state_dict(torch.load(args.snapshot_dir_lstm,map_location=device),strict=True)
+
 print("snapshot loaded!!!!")
 model.eval()
+lstm_model.eval()
+
 
 #input images have to be normalized for imagenet weights
 means = (0.485, 0.456, 0.406)
@@ -257,7 +280,7 @@ for i,batch in enumerate(test_loader):
         image= image.to(device)
         #forward pass
         with torch.no_grad():
-            score_map, variance_map,_= model(image)
+            score_map, variance_map= model(image)
             # if flag==True:
             #     # print('EXCEPTION ------------------------------------>')
             #     continue
@@ -348,8 +371,8 @@ for i,batch in enumerate(test_loader):
 
     #iterate through score maps and extract a contour
     component_score_maps=[]
-    component_areas= []
-    component_center_line_length= []
+    #component_areas= []
+    #component_center_line_length= []
     component_center_line= []
 
     for component_no in range(len(ids)):
@@ -371,7 +394,7 @@ for i,batch in enumerate(test_loader):
         if contours.shape[0]<=2:
             continue
         #find the area of these contours
-        current_area= area(contours[:,0].tolist(), contours[:,1].tolist())
+        #current_area= area(contours[:,0].tolist(), contours[:,1].tolist())
         # print("current_Area",current_area)
 
         #skeletonize the current score map
@@ -380,19 +403,42 @@ for i,batch in enumerate(test_loader):
         contours,hierarchy=cv2.findContours(current_score_map, cv2.RETR_LIST,cv2.CHAIN_APPROX_NONE)
         # print(type(contours),contours[0].shape)
         contours= contours[0].squeeze(1)
+
+        ################################ hare krushna #############################################
+        sequential_feature, length = construct_input( contours, backbone_feature)
+        hidden = lstm_model.initHidden(1)
+        output = torch.ones(1, 1, device=device)*(-1)
+        stacked_output=[]
+        for index in range(length):
+            output, hidden = lstm_model(sequential_feature[index,...].cuda(), hidden.cuda(), output.cuda())        
+            output = (output>06.6)*1.0
+            stacked_output.append(output)
+        
+        set_of_points=[]
+        
+        for index in range(length):
+            if stacked_output[index]==0:
+                if len(set_of_points)>0:
+                    component_center_line.append(set_of_points)
+                set_of_points=[]
+            else:
+                set_of_points.append(contours[index,:])
+
+        ##################################### khuda ########################################
+
         modified_score_map= current_score_map.copy()
         #scale up to maximumscale/4
         modified_score_map=cv2.resize(modified_score_map,((512+2*128)//4,(512+2*128)//4), interpolation=cv2.INTER_NEAREST)
         modified_score_map= (modified_score_map>0)*1.0
-        current_center_line_length= np.sum(modified_score_map)
+        #current_center_line_length= np.sum(modified_score_map)
 
         #print("current_score_map",np.unique(current_score_map),current_center_line_length)
         #append the skeletons for each component
         component_score_maps.append(current_score_map)
         #append the areas of each component
 
-        component_areas.append(current_area)
-        component_center_line_length.append(current_center_line_length)
+        #component_areas.append(current_area)
+        #component_center_line_length.append(current_center_line_length)
         component_center_line.append(contours)
     #print("finished")
     print("component_score_maps",len(component_score_maps))
@@ -409,17 +455,18 @@ for i,batch in enumerate(test_loader):
     image_path= meta['image_path'][0]
     image_id= image_path.split('/')[-1].split('.')[0]
 
-
     #perform gaussian prediction for each component
     visual_image = np.zeros((score_map[0].shape),dtype='uint8')
     sample_contours=[]
-    area_list= []
-    center_line_length_list=[]
+    #area_list= []
+   # center_line_length_list=[]
     center_line_list=[]
     print("len of list",len(sample_contours))
+
+
     for i,center_line_mask in enumerate(component_score_maps):
-        segmentation_area= component_areas[i]
-        center_line_length= component_center_line_length[i]
+        #segmentation_area= component_areas[i]
+        #center_line_length= component_center_line_length[i]
         component_variance_map= center_line_mask*(variance_map_x+ variance_map_y)
         #print("full variance map")
         component_variance_map_x= center_line_mask*variance_map_x
@@ -461,20 +508,20 @@ for i,batch in enumerate(test_loader):
             #print("updaing sample contours",len(filtered_contour_list))
             if len(filtered_contour_list)==0:
                 sample_contours.append('')
-                area_list.append(segmentation_area)
-                center_line_length_list.append(center_line_length)
+                #area_list.append(segmentation_area)
+                #center_line_length_list.append(center_line_length)
                 center_line_list.append('')
             else:
                 for filtered_list in filtered_contour_list:
                     sample_contours.append(filtered_list)
-                    area_list.append(segmentation_area)
-                    center_line_length_list.append(center_line_length)
+                    #area_list.append(segmentation_area)
+                    #center_line_length_list.append(center_line_length)
                     center_line_list.append(component_center_line[i])
 
         else:
             sample_contours+=['']
-            area_list.append(segmentation_area)
-            center_line_length_list.append(center_line_length)
+            #area_list.append(segmentation_area)
+            #center_line_length_list.append(center_line_length)
             center_line_list+=['']
 
         #print("center line mask shape",center_line_mask.shape)
