@@ -2,12 +2,13 @@
 #INPUT_SIZE=512
 DATASET='TOTALTEXT'
 #BACKBONE='VGG'
-# TEST_DIR="data/debug/total-text-original/Images/Test"
+TEST_DIR="data/debug/total-text-original/Images/Test"
+# SEGRESSION_CHECKPOINT_PATH='snapshots/batch_size_2lr_0.0001n_steps_200000dataset_TOTALTEXTbackbone_VGG/TOTALTEXT_3d_rotated_gaussian_without_attention_10000.pth'
 SEGRESSION_CHECKPOINT_PATH='snapshots/TOTALTEXT_3d_rotated_gaussian_without_attention_100000.pth'
 LSTM_CHECKPOINT_PATH='snapshots/LSTM_batch_size_8lr_0.0001n_steps_100000dataset_TOTALTEXTbackbone_VGG/TOTALTEXT_LSTM_checkpoint6000.pth'
 CUDA_DEVICE=0
 SEGMENTATION_THRESHOLD=0.8
-GAUSSIAN_THRESHOLD=0.65
+GAUSSIAN_THRESHOLD=0.70
 LSTM_THRESHOLD=0.70
 N_CLASSES=3
 # MODE='with_lstm'

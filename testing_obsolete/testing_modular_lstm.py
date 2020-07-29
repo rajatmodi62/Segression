@@ -12,7 +12,7 @@ from skimage import measure
 from packaging import version
 from testing_obsolete.testloader_square import TestDataLoader
 from testing_obsolete.create_eval_outputs import EvalOutputs
-from testing_obsolete.find_longest_path import findLongestPath
+# from testing_obsolete.find_longest_path import findLongestPath
 from model.segression import Segression
 from util.augmentation import BaseTransform
 from shapely.geometry import Polygon
@@ -65,7 +65,10 @@ device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 os.system("nvidia-smi | grep 'python' | awk '{ #print $3 }' | xargs -n1 kill -9")
 
 #enter scales in a sorted increasing order
-scales= [512,512+128,512+2*128,1024, 1024+256, 1024+512]
+scales= [512,512+128,512+2*128,1024, 1024+256, 1024+512] # best
+# scales= [512,512+128,512+2*128,1024, 1024+512, 1024+1024] # best
+# scales= [1024,1024]
+
 scaling_factor= np.max(np.asarray(scales))/scales
 
 BATCH_SIZE = 1
@@ -154,7 +157,7 @@ def variance_filter(variance_map, max_value_index, mask, pred_center_line, mode=
 	# plt.show()
 	return filtered_variance_map
 
-def voting(center_line_list):
+def voting(center_line_list, variance_mask_list):
 
 	#get the minimum no of votes needed
 	min_votes_needed= len(scales)//2 +  1
@@ -162,8 +165,13 @@ def voting(center_line_list):
 	#perform the sum in the list
 	mask = torch.zeros(center_line_list[0].shape).to(device)
 
-	for scaled_center_line_image in center_line_list:
-		temp = (scaled_center_line_image.squeeze()>args.segmentation_threshold)*1.0
+	for index, scaled_center_line_image in enumerate(center_line_list):
+		if len(variance_mask_list)==0:
+			temp = (scaled_center_line_image.squeeze()>args.segmentation_threshold)*1.0
+		else:
+			# print('pruning')
+			# input('halt')
+			temp = ((scaled_center_line_image.squeeze()*variance_mask_list[index])>args.segmentation_threshold)*1.0
 		mask+= temp
 
 	#perform voting
@@ -255,10 +263,10 @@ def model_inference(model,image,max_scale):
 		theta_map= theta_map.detach().cpu().numpy()
 		return score_map.unsqueeze(0), variance_map.unsqueeze(0), theta_map, backbone_feature
 
-def multiscale_aggregation(pred_center_line, pred_variance_map):
+def multiscale_aggregation(pred_center_line, pred_variance_map, variance_mask_list):
 	#perform voting here
 	score_map_maximum_scale= pred_center_line[-1]
-	score_map, max_value_index = voting(pred_center_line)
+	score_map, max_value_index = voting(pred_center_line,variance_mask_list)
 
 	variance_map = variance_filter(pred_variance_map, max_value_index, score_map,pred_center_line)
 	score_map = score_map.detach().cpu().numpy()
@@ -524,8 +532,32 @@ def smoothen_center_line(score_map):
 	# print("type of fil skeleton",type(skeleton),skeleton.shape,np.unique(skeleton))
 	return skeleton
 
+# def variance_pruning_v2(variance_map, H,W,scale, factor=0.005):
+# 	max_side = H
+# 	if max_side>W:
+# 		max_side=W
+# 	# delta = (scale/max_side)*factor
+# 	delta = scale*factor
+# 	print( scale*factor)
+# 	# input('two')
+# 	variance_map_pred = torch.max(variance_map[0:2].squeeze(),dim=0)[0]
+# 	variance_mask = (variance_map_pred>delta)*1
+# 	return variance_mask
+
+# def variance_pruning(variance_map, H,W,scale, factor=3):
+# 	max_side = H
+# 	if max_side>W:
+# 		max_side=W
+# 	delta = (scale/max_side)*factor
+# 	# delta = scale*factor
+# 	# print( scale*factor)
+# 	# input('two')
+# 	variance_map_pred = torch.max(variance_map[0:2].squeeze(),dim=0)[0]
+# 	variance_mask = (variance_map_pred>delta[0])*1
+# 	return variance_mask
+
+
 	
-		
 	
 # def main():                                                                                                                                                                                                         
 ################################################################################
@@ -553,7 +585,7 @@ testset= TestDataLoader(dataset=args.dataset,scales=scales,test_dir=args.test_di
 test_loader = data.DataLoader(testset, batch_size=BATCH_SIZE, shuffle=False,num_workers=1)
 
 eval= EvalOutputs(args)
-
+pruning=False
 #enumerate over the DataLoader
 for i,batch in enumerate(test_loader):
 	# if i<2:
@@ -563,8 +595,12 @@ for i,batch in enumerate(test_loader):
 
 	#perform the prediction scaling
 	H,W= meta['image_shape']
+	# print(meta["image_id"],H,W,type(H),type(W))
 	H=H.numpy()
 	W=W.numpy()
+	# print('height',H)
+	# print('widht', W)
+	#input('haltxzxx')
 
 	max_scale= scales[-1]//4
 	scaling_factor_x= W/max_scale
@@ -572,14 +608,18 @@ for i,batch in enumerate(test_loader):
 
 	pred_center_line= []
 	pred_variance_map= []
+	variance_map_list=[]
 
-	for image in scaled_images:
+	for ii, image in enumerate(scaled_images):
 		image= image.to(device)
 		score_map,variance_map, theta_map,backbone_feature= model_inference(model,image,max_scale)
+		# if pruning:
+		# 	variance_mask = variance_pruning(variance_map, H,W,scales[ii]) 
+		# 	variance_map_list.append(variance_mask)
 		pred_center_line.append(score_map)
 		pred_variance_map.append(variance_map)
-
-	score_map, variance_map = multiscale_aggregation(pred_center_line, pred_variance_map)
+		
+	score_map, variance_map = multiscale_aggregation(pred_center_line, pred_variance_map,variance_map_list)
 	score_map= (score_map*255).astype('uint8')
 	#print("before this, the total score map was")
 	# print("len of score ")

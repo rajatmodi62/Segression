@@ -1,16 +1,16 @@
-BATCH_SIZE=4
+BATCH_SIZE=2
 NUM_WORKERS=3
 INPUT_SIZE=512
 LEARNING_RATE=1e-4
-NUM_STEPS=100000
+NUM_STEPS=200000
 POWER=0.9
 SAVE_PRED_EVERY=5000
 SNAPSHOT_DIR='./snapshots/'
 DATASET='TOTALTEXT'
-CHECKPOINT_NO=70000
+CHECKPOINT_NO=10001
 UPDATE_VISDOM_ITER=100
 BACKBONE='VGG'
-CHECKPOINT_PATH='/home/abhilash/Desktop/prateek/Segression/snapshots/TOTALTEXT_3d_rotated_gaussian_without_attention_70000.pth'
+CHECKPOINT_PATH='snapshots/batch_size_2lr_0.0001n_steps_200000dataset_TOTALTEXTbackbone_VGG/TOTALTEXT_3d_rotated_gaussian_without_attention_10000.pth'
 ITERATION_TO_START_FROM=`expr $CHECKPOINT_NO + 1`
 CUDA_DEVICE=0
 
@@ -27,6 +27,6 @@ CUDA_VISIBLE_DEVICES=$CUDA_DEVICE python train_modular.py --batch-size=$BATCH_SI
             --dataset=$DATASET \
             --checkpoint=$CHECKPOINT_PATH \
             --iteration-to-start-from=$ITERATION_TO_START_FROM \
-            --update-visdom-iter=$UPDATE_VISDOM_ITER\
-            --backbone=$BACKBONE
-             #--visualization
+            --update-visdom-iter=$UPDATE_VISDOM_ITER \
+            --backbone=$BACKBONE \
+            --visualization
