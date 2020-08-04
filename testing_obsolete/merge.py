@@ -12,7 +12,7 @@ from shapely.ops import cascaded_union
 image_path='./data/total-text/Images/Test'
 write_path= 'results/merging/'
 prediction_path= 'results/merged_prediction/'
-centerline_path='results/TOTALTEXTgaussian_threshold=0.65_segmentation_threshold=0.8_lstm_threshold=0.7/center_line_maps'
+centerline_path='results/TOTALTEXTgaussian_threshold=0.7_segmentation_threshold=0.8_lstm_threshold=0.7/center_line_maps'
 
 def crawl_prediction_files(path):
 
@@ -651,7 +651,7 @@ def merger(prediction_list, filename, viz=False):
 
 
 if __name__=='__main__':
-	path='results/TOTALTEXTgaussian_threshold=0.65_segmentation_threshold=0.8_lstm_threshold=0.7/gaussian_maps'
+	path='results/TOTALTEXTgaussian_threshold=0.7_segmentation_threshold=0.8_lstm_threshold=0.7/gaussian_maps'
 	print("hello")
 	#print(drop_threshold)
 	#drop_threshold= []

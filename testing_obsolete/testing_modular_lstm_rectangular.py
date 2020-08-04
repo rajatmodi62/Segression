@@ -10,7 +10,8 @@ import statistics
 import matplotlib.pyplot as plt
 from skimage import measure
 from packaging import version
-from testing_obsolete.testloader_square import TestDataLoader
+# from testing_obsolete.testloader_square import TestDataLoader
+from testing_obsolete.testloader_rectangular import TestDataLoader,get_test_img_path
 from testing_obsolete.create_eval_outputs import EvalOutputs
 # from testing_obsolete.find_longest_path import findLongestPath
 from model.segression import Segression
@@ -26,7 +27,8 @@ import argparse
 from model.lstm import BreakLine_v2
 from fil_finder import FilFinder2D
 import astropy.units as u 
-
+from PIL import Image
+from util.grid_utils import convert_string_to_list,convert_list_to_string,create_config_dict
 
 ###############################################################################
 parser = argparse.ArgumentParser(description="Welcome to the Segression Testing Module!!!")
@@ -52,9 +54,28 @@ parser.add_argument("--out-channels", type=int, default=32,
 						help="Save summaries and checkpoint every often.")
 parser.add_argument("--n-classes", type=int, default=1,
 						help="number of classes in segmentation head.")
-
 parser.add_argument("--mode", type=str, default="",
 					help="Enter training with/without lstm")
+
+#CHOICE 1: USE THIS FOR AUTOMATIC SCALE CREATION
+#parser options for the grid search 
+parser.add_argument("--h_max", type=int, default=768,
+						help="Enter the height for testing the images")
+parser.add_argument("--w_max", type=int, default=1024,
+						help="Enter the height for testing the images")
+#scaling factor list 
+parser.add_argument("--scaling_factors", type=str, default="",
+					help="Enter the scaling factors for testing")
+
+
+#CHOICE 1: USE THIS FOR HARDCODING THE INPUT SCALES 
+parser.add_argument("--hardcode",action='store_true',
+					help="Enter the case when hardcoded scales are to be used")
+#hardcoded scales									
+parser.add_argument("--hardcoded_scales", type=str, default="",
+					help="Enter the Hard coded scales for testing, should be a multiple of 32")			
+
+#parse the arguments 
 args = parser.parse_args()
 
 #print("All requisite testing modules loaded")
@@ -65,12 +86,51 @@ device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 os.system("nvidia-smi | grep 'python' | awk '{ #print $3 }' | xargs -n1 kill -9")
 
 #enter scales in a sorted increasing order
-scales= [512,512+128,512+2*128,1024, 1024+256, 1024+512] # best
-# scales= [512,512+128,512+2*128,1024, 1024+512, 1024+1024] # best
-# scales= [1024,1024]
+# global_scales= [512,512+128,512+2*128,1024, 1024+256, 1024+512] # best
+# global_scales= [512,512+128,512+2*128,1024, 1024+512, 1024+1024] # best
+# global_scales= [1024,1024]
 
-scaling_factor= np.max(np.asarray(scales))/scales
+#global_scaling_factors=[0.5,0.25,0.75]
+#scaling_factor= np.max(np.asarray(scales))/scales
+#testing inputs
+#initialize scaling factors 
+# scaling_factors= [0.25,0.6,0.9,1]
 
+# h_max=768
+# w_max=1024
+# scaling_factors=[0.2,0.3,0.6,0.9,1]
+
+#extracting arguments from argparser 
+h_max= args.h_max
+w_max= args.w_max
+scaling_factors= convert_string_to_list(args.scaling_factors)
+
+#harcode 
+# hardcode= True
+# hardcoded_scales=[512,512+128,512+2*128,1024, 1024+256, 1024+512] 
+
+#extracting arguments from argparser
+hardcode= args.hardcode
+
+if args.hardcode:
+	hardcoded_scales= convert_string_to_list(args.hardcoded_scales)
+else:
+	hardcoded_scales=[]
+print("scaling_factors are",scaling_factors)
+# scaling_factors= [0.25,0.50,0.75,1]
+config_dict= create_config_dict(dataset=args.dataset,\
+						test_dir=args.test_dir,\
+						snapshot_dir=args.snapshot_dir,\
+						segmentation_threshold=args.segmentation_threshold,\
+						gaussian_threshold=args.gaussian_threshold,\
+						backbone=args.backbone,\
+						out_channels=args.out_channels,\
+						n_classes=args.n_classes,\
+						h_max=args.h_max,\
+						w_max=args.w_max,\
+						scaling_factors=scaling_factors,\
+						hardcode=hardcode,\
+						hardcoded_scales=hardcoded_scales)
 BATCH_SIZE = 1
 INPUT_SIZE = 256
 
@@ -96,7 +156,10 @@ for path in paths:
 
 
 ################################################################################
-
+def pil_load_img(path):
+	image = Image.open(path).convert("RGB")
+	image = np.array(image)
+	return image
 
 def area(x, y):
 	polygon = Polygon(np.stack([x, y], axis=1))
@@ -125,38 +188,49 @@ def create_gaussian_array(variance_x,variance_y,theta,x,y,height=INPUT_SIZE//4,w
 def variance_filter(variance_map, max_value_index, mask, pred_center_line, mode='average'):
 
 	filtered_variance_map = torch.zeros(variance_map[0].shape).float()
+	#print("filtered variance map shape",filtered_variance_map.shape)
+	#input('halt')
 	variance_map = torch.cat(variance_map, dim=0) # scalesx3xhxw
 	pred_center_line = torch.cat(pred_center_line, dim=0)
 	pred_center_line =(pred_center_line.squeeze()>args.segmentation_threshold)*1.0
 
 	pred_center_line = pred_center_line.unsqueeze(1).repeat(1,3,1,1)
 	add_center_line = torch.sum(pred_center_line,dim=0)
+
+
 	mask = mask.squeeze()
 	non_zero_index = mask.nonzero()
-	scaling_factor= np.max(np.asarray(scales))/scales
-	#print('scaling factor', scaling_factor)
-	if mode=='average':
-		scaling_factor = torch.from_numpy(np.asarray(scaling_factor)).cuda()
-		scaling_factor = scaling_factor.reshape(-1,1,1,1).repeat(1,2,variance_map.shape[-2], variance_map.shape[-1])
+	#print(non_zero_index)
+	# print("rajat scales",scales)
+	# print('scaling factor ======>', np.asarray(scales).shape)
+	rescale_factor= np.max(np.asarray(scales),axis=0)/scales
+	# print('tempppp', rescale_factor)
 
+	if mode=='average':
+		rescale_factor = torch.from_numpy(np.asarray(rescale_factor)).cuda()
+		rescale_factor = rescale_factor.reshape(-1,2,1,1).repeat(1,1,variance_map.shape[-2], variance_map.shape[-1])
+	counter=0
 	for index in non_zero_index:
 		if mode=='average':
 			slice_value = variance_map[:,:,index[0],index[1]]*pred_center_line[:,:,index[0],index[1]]
-			#print("slice value",slice_value.shape,scaling_factor.shape)
-			#input('halt')
-			slice_value[:,0:2]=slice_value[:,0:2]*scaling_factor[:,:,index[0],index[1]]
+			#print("slice value",slice_value[:,0:2].shape,rescale_factor[:,:,index[0],index[1]].shape)
+			slice_value[:,0]=slice_value[:,0]*rescale_factor[:,0,index[0],index[1]]
+			slice_value[:,1]=slice_value[:,1]*rescale_factor[:,1,index[0],index[1]]
 			slice_value=torch.sum(slice_value,dim=0)/add_center_line[:,index[0],index[1]]
 			filtered_variance_map[0,:,index[0],index[1]]= slice_value#variance_map[mask[index[0],index[1]],:,index[0],index[1]]
+			#print(slice_value.shape, counter)
+			counter +=1
 		else:
 			max_value= max_value_index[index[0],index[1]]
 			slice_value = variance_map[max_value,:,index[0],index[1]]
 			filtered_variance_map[0,:,index[0],index[1]]= slice_value#variance_map[mask[index[0],index[1]],:,index[0],index[1]]
-			filtered_variance_map[0,0,index[0],index[1]]=filtered_variance_map[0,0,index[0],index[1]]*scaling_factor[max_value_index[index[0],index[1]]]
-			filtered_variance_map[0,1,index[0],index[1]]=filtered_variance_map[0,1,index[0],index[1]]*scaling_factor[max_value_index[index[0],index[1]]]
+			filtered_variance_map[0,0,index[0],index[1]]=filtered_variance_map[0,0,index[0],index[1]]*rescale_factor[max_value_index[index[0],index[1]]]
+			filtered_variance_map[0,1,index[0],index[1]]=filtered_variance_map[0,1,index[0],index[1]]*rescale_factor[max_value_index[index[0],index[1]]]
 	# filtered_variance_map = variance_map[max_value_index,:,:,:] # 3xhxw
 	filtered_variance_map=filtered_variance_map.detach().cpu().numpy()
 	# plt.imshow(filtered_variance_map[0][0])
 	# plt.show()
+	#input('halt')
 	return filtered_variance_map
 
 def voting(center_line_list, variance_mask_list):
@@ -166,7 +240,6 @@ def voting(center_line_list, variance_mask_list):
 	
 	#perform the sum in the list
 	mask = torch.zeros(center_line_list[0].shape).to(device)
-
 	for index, scaled_center_line_image in enumerate(center_line_list):
 		if len(variance_mask_list)==0:
 			temp = (scaled_center_line_image.squeeze()>args.segmentation_threshold)*1.0
@@ -182,7 +255,8 @@ def voting(center_line_list, variance_mask_list):
 
 	center_line_list = torch.cat(center_line_list,dim=0) # scalesxhxw
 	max_value_index = torch.argmax(center_line_list,dim=0)# hxw
-
+	# print("shape of mask",mask.shape)
+	# print("max value index",max_value_index.shape)
 	# plt.imshow(mask.cpu().numpy()[0])
 	# plt.show()
 	return mask, max_value_index
@@ -239,9 +313,10 @@ def load_model():
 
 def model_inference(model,image,max_scale):
 	#forward pass
+	print("===============in model inference max_scale is",max_scale[0])
+
 	with torch.no_grad():
 		score_map, variance_map,backbone_feature= model(image)
-
 		#score map is center line map
 		if args.n_classes>1:
 			conceal = F.sigmoid(score_map[:,2,:,:])
@@ -252,12 +327,13 @@ def model_inference(model,image,max_scale):
 			#plt.show()
 			score_map= score_map.unsqueeze(1)
 
-		score_map=F.upsample(score_map, size=[max_scale,max_scale], mode='nearest')
+		#upsample takes input as [h,w]
+		score_map=F.upsample(score_map, size=[max_scale[0]//4,max_scale[1]//4], mode='nearest')
 		score_map= score_map.squeeze(0)
 		score_map= score_map.squeeze(0)
 
 		#variance map contains the variances of the gaussians
-		variance_map = F.upsample(variance_map, size=[max_scale,max_scale], mode='nearest')
+		variance_map = F.upsample(variance_map, size=[max_scale[0]//4,max_scale[1]//4], mode='nearest')
 		variance_map= variance_map.squeeze(0)
 		variance_map=variance_map.squeeze(0)
 
@@ -268,12 +344,20 @@ def model_inference(model,image,max_scale):
 def multiscale_aggregation(pred_center_line, pred_variance_map, variance_mask_list):
 	#perform voting here
 	score_map_maximum_scale= pred_center_line[-1]
+	#print("Score map max scale",score_map_maximum_scale.shape)
+	#print("entering voting")
+	#input('halt')
 	score_map, max_value_index = voting(pred_center_line,variance_mask_list)
-
+	# print("Score map shape",score_map.shape,max_value_index.shape, )
+	#
+	#print("entering variance filter")
+	#input('halt')
 	variance_map = variance_filter(pred_variance_map, max_value_index, score_map,pred_center_line)
+	#print("exit variance filter")
+	#input('halt')
 	score_map = score_map.detach().cpu().numpy()
 	score_map= (score_map>0).astype('uint8')
-
+	#print("============variance map shape",type(variance_map),variance_map)
 	#print("variance map shape", variance_map[0].shape,type(variance_map))
 	return score_map, variance_map
 
@@ -286,7 +370,7 @@ def smoothen_center_line(score_map):
 	fil.create_mask(border_masking=True, verbose=False,
 	use_existing_mask=True)
 	fil.medskel(verbose=False)
-	print("u.pix",)
+	#print("u.pix",)
 	fil.analyze_skeletons(branch_thresh=40* u.pix, skel_thresh=10 * u.pix, prune_criteria='length')
 	return fil.skeleton
 
@@ -301,11 +385,11 @@ def smoothen_center_line(score_map):
 	# # plt.show()
 
 
-def extract_center_line(score_map, smooth=True):
+def extract_center_line(score_map,scaling_factor_x,scaling_factor_y, smooth=True):
 	#extract contours from it.
 	blobs_labels = measure.label(score_map, background=0)
 	ids = np.unique(blobs_labels)
-
+	print('===========> rajat',score_map.shape)
 	#iterate through score maps and extract a contour
 	component_score_maps=[]
 	component_center_line= []
@@ -324,10 +408,13 @@ def extract_center_line(score_map, smooth=True):
 		contours= contours[0].squeeze(1)
 
 		#scale up the points
+		# scaling_factor_x= W/max_scale
+		# scaling_factor_y= H/max_scale
 		scaling=[scaling_factor_x,scaling_factor_y]
 		scaling=np.array(scaling).T
 		contours=contours*scaling
 
+		
 		#skip if a component has less than 2 points
 		if contours.shape[0]<=2:
 			continue
@@ -402,7 +489,23 @@ def construct_contours(variance_map, component_score_maps, theta_map):
 			for j in range(n_gaussians):
 				x_coordinate=non_zero_arrays[0][j]
 				y_coordinate= non_zero_arrays[1][j]
-				gaussian=create_gaussian_array(component_variance_map_x[x_coordinate][y_coordinate],component_variance_map_y[x_coordinate][y_coordinate],component_theta_map[x_coordinate][y_coordinate],x_coordinate,y_coordinate,height=scales[-1]//4,width=scales[-1]//4)
+				# print("component_variance_map shape",\
+				# 	component_variance_map_x[x_coordinate][y_coordinate],\
+				# 	component_variance_map_y[x_coordinate][y_coordinate],\
+				# 	component_variance_map_y.shape,\
+				# 	scales[-1][0]//4,\
+				# 	scales[-1][0]//4)
+					
+				gaussian=create_gaussian_array(component_variance_map_x[x_coordinate][y_coordinate],\
+											component_variance_map_y[x_coordinate][y_coordinate],\
+											component_theta_map[x_coordinate][y_coordinate],\
+											x_coordinate,y_coordinate,\
+											height=scales[-1][1]//4,\
+											width=scales[-1][0]//4)
+				# print("gaussian")
+				# print(np.unique(gaussian),gaussian.shape)
+				# plt.imshow(gaussian*255)
+				# plt.show()
 				component_gaussians.append(gaussian)
 				# if j%100 is 0:
 					#print(j)
@@ -431,6 +534,9 @@ def construct_contours(variance_map, component_score_maps, theta_map):
 		else:
 			sample_contours+=['']
 			center_line_list+=['']
+	# print("visual image")
+	# plt.imshow(visual_image)
+	# plt.show()
 	return sample_contours, center_line_list
 
 def scaling_to_original_scale(scaling_factor_x, scaling_factor_y,\
@@ -581,40 +687,77 @@ if args.mode=='with_lstm':
 else:
 	model = load_model()
 
-testset= TestDataLoader(dataset=args.dataset,scales=scales,test_dir=args.test_dir)
+
+#get test_img_path
+if args.test_dir:
+	test_img_path=args.test_dir
+	test_img_path= [os.path.join(test_img_path,path) \
+						for path in os.listdir(test_img_path)]
+	
+	test_img_path= sorted(test_img_path)
+else:
+	test_img_path= get_test_img_path(dataset=args.dataset)
+# print("test image path is",args.test_dir)
+#find the test dataloader
+testset= TestDataLoader(test_img_path=test_img_path)
 
 #construct dataloader
-test_loader = data.DataLoader(testset, batch_size=BATCH_SIZE, shuffle=False,num_workers=1)
+# test_loader = data.DataLoader(testset, batch_size=BATCH_SIZE, shuffle=False,num_workers=1)
 
-eval= EvalOutputs(args)
+eval= EvalOutputs(args,config_dict)
 pruning=False
 #enumerate over the DataLoader
-for i,batch in enumerate(test_loader):
+for i,img_path in enumerate(test_img_path):
+#for i,batch in enumerate(test_loader):
 	# if i<2:
 	# 	continue
+	#read image to get h_orig,w_orig.
+	image = pil_load_img(test_img_path[i])
+	h_orig, w_orig, _ = image.shape
+	#get the scaled images for testloader
+	scaling_factors=[512/(1024+512),(512+128)/(1024+512),(512+2*128)/(1024+512),1024/(1024+512), (1024+256)/(1024+512), (1024+512)/(1024+512)]
+
+	batch= testset.getitem(i,\
+					h_max=h_max,\
+					w_max=w_max,\
+					scaling_factors=scaling_factors,\
+					hardcode=hardcode,\
+					hardcoded_scales=hardcoded_scales)
+	
 	print("sample_id: ",i, " out of", len(testset))
+	
 	scaled_images,meta= batch
 
 	#perform the prediction scaling
-	H,W= meta['image_shape']
-	# print(meta["image_id"],H,W,type(H),type(W))
-	H=H.numpy()
-	W=W.numpy()
-	# print('height',H)
-	# print('widht', W)
-	#input('haltxzxx')
-
-	max_scale= scales[-1]//4
-	scaling_factor_x= W/max_scale
-	scaling_factor_y= H/max_scale
+	h_orig,w_orig= meta['image_shape_orig']
+	scales= meta['scales']
+	#print(meta["image_id"],H_orig,W_orig,type(H_orig),type(W_orig))
+	
+	print("@@rajat list of scales",scales)
+	# print("original height ,width",h_orig,w_orig)
+	
+	max_scale= (scales[-1][0]//4,scales[-1][1]//4)
+	scaling_factor_x= w_orig/max_scale[1]
+	scaling_factor_y= h_orig/max_scale[0]
 
 	pred_center_line= []
 	pred_variance_map= []
 	variance_map_list=[]
 
 	for ii, image in enumerate(scaled_images):
+		#convert image input to compatible gpu tensor 
+		# plt.imshow(image)
+		# plt.show()	
+		image= image.transpose(2,0,1)
+		
+		image= torch.from_numpy(image).unsqueeze(0).float()
+		# print("before making fwd pass image shape is",image.shape)
+
 		image= image.to(device)
-		score_map,variance_map, theta_map,backbone_feature= model_inference(model,image,max_scale)
+		score_map,variance_map, theta_map,backbone_feature= model_inference(model,image,max_scale=scales[-1])
+		print("Segmentation map",score_map.shape)
+		# plt.imshow((score_map[0].cpu().numpy()>0.8)*1)
+		# plt.show()
 		# if pruning:
 		# 	variance_mask = variance_pruning(variance_map, H,W,scales[ii]) 
 		# 	variance_map_list.append(variance_mask)
@@ -622,12 +765,16 @@ for i,batch in enumerate(test_loader):
 		pred_variance_map.append(variance_map)
 		
 	score_map, variance_map = multiscale_aggregation(pred_center_line, pred_variance_map,variance_map_list)
+	# print("==========score_map",score_map.shape)
+	# print("============variance map shape",type(variance_map),variance_map.shape)
 	score_map= (score_map*255).astype('uint8')
+
 	#print("before this, the total score map was")
 	# print("len of score ")
 	# plt.imshow(score_map[0])
 	# plt.show()
-	component_score_maps, component_center_line = extract_center_line(score_map) 
+	print("going in extract center line")
+	component_score_maps, component_center_line = extract_center_line(score_map,scaling_factor_x,scaling_factor_y) 
 	# print("total no of predicted contours",len(component_score_maps))
 	# for contour in component_score_maps:
 	# 	print("debugging individual contours",np.unique(contour))
@@ -710,9 +857,9 @@ for i,batch in enumerate(test_loader):
 														filtered_center_line_list)
 
 	##print(" filtered contour shape",filtered_contour_list[0].shape)
-	print(" meta",meta["image_id"])
-
+	# print(" meta",meta["image_id"])
+	# input('halt')
 	#create dataset eval
 	#print("calling evaluation code upon the dataset")
 	eval.generate_predictions(filtered_contour_list,meta["image_id"][0],filtered_center_line_list)
-	break
+	# break

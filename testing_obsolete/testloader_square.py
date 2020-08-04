@@ -69,7 +69,7 @@ class TestDataLoader(data.Dataset):
         for scale in self.scales:
             #create a transform here
             transform = BaseTransform(
-                size=scale, mean=self.means, std=self.stds
+                size=(scale,scale), mean=self.means, std=self.stds
             )
 
             scaled_images.append(transform(image)[0].transpose(2,0,1))

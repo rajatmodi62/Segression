@@ -18,7 +18,6 @@ import matplotlib.pyplot as plt
 import random
 import timeit
 #from skeletonize import skeletonize_image
-
 from packaging import version
 from dataset.ctw1500 import CTW1500
 from dataset.icdar2015 import ICDAR2015
@@ -31,8 +30,6 @@ from loss_function_new import *
 #from model.edge_detection import EdgeDetection
 from loss import BinaryFocalLoss
 from collections import defaultdict
-
-
 
 start = timeit.default_timer()
 
@@ -82,14 +79,12 @@ def get_arguments():
                         help="train with attention mechanism : 'attention', 'without_attention' ")
     parser.add_argument("--out-channels", type=int, default=32,
                         help="Save summaries and checkpoint every often.")
-
     return parser.parse_args()
 
 def create_snapshot_path(args):
     snapshot_dir = os.path.join(args.snapshot_dir,"batch_size_"+str(args.batch_size) + "lr_"+ str(args.learning_rate) + \
 		"n_steps_"+str(args.num_steps) + "dataset_"+str(args.dataset) +"backbone_"+str(args.backbone))
     return snapshot_dir
-
 
 def lr_poly(base_lr, iter, max_iter, power):
     return base_lr*((1-float(iter)/max_iter)**(power))
@@ -110,7 +105,6 @@ def visualization(visual_list ):
             win=visual_list[index][1],
             opts=dict(title='TotalText Dataset', caption=visual_list[index][2]),
         )
-
     #
     # viz.image(
     #     visual_list[1]*100,
@@ -168,9 +162,6 @@ def visualization(visual_list ):
     #     opts=dict(title='TotalText Dataset', caption='GT Text Regions'),
     # )
 
-
-
-
 def get_train_loader_object(dataset):
 
     means = (0.485, 0.456, 0.406)
@@ -182,6 +173,7 @@ def get_train_loader_object(dataset):
             is_training=True,
             transform=Augmentation(size=args.input_size, mean=means, std=stds)
         )
+
     elif dataset=='CTW1500':
         trainset = CTW1500(
             data_root=args.data_root+'/data/ctw-1500-original',
@@ -190,6 +182,7 @@ def get_train_loader_object(dataset):
             is_training=True,
             transform=Augmentation(size=args.input_size, mean=means, std=stds)
         )
+
     elif dataset=='MSRATD500':
         trainset = MSRATD500(
             data_root=args.data_root+'/data/msra-td500',
@@ -198,6 +191,7 @@ def get_train_loader_object(dataset):
             is_training=True,
             transform=Augmentation(size=args.input_size, mean=means, std=stds)
         )
+
     elif dataset=='ICDAR2015':
         trainset = ICDAR2015(
             data_root=args.data_root+'/data/icdar-2015',
@@ -208,7 +202,7 @@ def get_train_loader_object(dataset):
         )
     elif dataset=='TOTALTEXT':
         trainset = TotalText(
-            data_root=args.data_root+'/data/total-text',
+            data_root=args.data_root+'/data/total-text-original',
             input_size=args.input_size,
             ignore_list=None,
             is_training=True,
@@ -431,11 +425,7 @@ def main():
         # center line dice loss previous used
         #loss_score_map=centre_line_loss(train_mask,score_map,center_line_map_orig)
         loss_score_map= centre_line_loss2(train_mask, score_map, center_line_map_orig, textregion_orignal_scale)
-
-
         #loss_score_map=multiclass_dice_loss(three_class_seg_ground_truth,train_mask,score_map)
-
-
         #convert train mask to bool
         train_mask= train_mask.type(torch.bool)
         # loss_score_map= binary_focal_loss(score_map,center_line_map,train_mask)
@@ -511,9 +501,6 @@ def main():
                            [score_map[0]*1.0,"score_map", 'Prediction for Segmentation Branch'],\
                            [center_line_map_orig[0,...]*1.0,"cneter line", 'ground truth cetner line ']
                            ]
-
-    
-
                             #three_class_seg_ground_truth[0,...]]#meta['variance_attention'][0,...]]
             #print(meta['variance_attention'].shape)
             visualization(visual_list )
@@ -540,7 +527,6 @@ def main():
 
         if i_iter%10==0 :
             print('exp = {}'.format(args.snapshot_dir))
-
             import gc
             len=0
             for obj in gc.get_objects():
@@ -553,7 +539,6 @@ def main():
             print("len of tensors",len)
             print("backbrop counter",i_iter)
             print('iter = {0:8d}/{1:8d}, loss_seg = {2:.3f}, loss_gaussian_branch = {3:.3f}, loss_segmentation_branch = {4:.3f}'.format(i_iter, args.num_steps, loss_seg,loss_contour_map,loss_score_map))
-
 
         if i_iter >= args.num_steps-1:
             print ('save model ...')

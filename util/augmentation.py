@@ -386,13 +386,13 @@ class Normalize(object):
 
 
 class Resize(object):
-	def __init__(self, size=256):
-		self.size_H, self.size_W = size,size
+	def __init__(self, size):
+		self.size_H, self.size_W = size
 
 	def __call__(self, image, polygons=None):
 		h, w, _ = image.shape
-		image = cv2.resize(image, (self.size_H,
-								   self.size_W))
+		image = cv2.resize(image, (self.size_W,
+								   self.size_H))
 		#print('image size ==>', image.shape)
 		scales = np.array([self.size_W / w, self.size_H / h])
 
@@ -412,7 +412,8 @@ class Augmentation(object):
 		self.augmentation = Compose([
 			# Resize(size),
 			Padding(),
-			RandomResizedLimitCrop_EAST(size=size, scale=(0.3, 0.5), ratio=(0.33, 3)),
+			#RandomResizedLimitCrop((size=size, scale=(0.24, 1.69), ratio=(0.33, 3))),
+			RandomResizedLimitCrop(size=size, scale=(0.24, 1.69), ratio=(0.33, 3)),
 			# RandomBrightness(),
 			# RandomContrast(),
 			RandomMirror(),
