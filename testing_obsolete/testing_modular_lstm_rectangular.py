@@ -313,7 +313,7 @@ def load_model():
 
 def model_inference(model,image,max_scale):
 	#forward pass
-	print("===============in model inference max_scale is",max_scale[0])
+	#print("===============in model inference max_scale is",max_scale[0])
 
 	with torch.no_grad():
 		score_map, variance_map,backbone_feature= model(image)
@@ -389,7 +389,7 @@ def extract_center_line(score_map,scaling_factor_x,scaling_factor_y, smooth=True
 	#extract contours from it.
 	blobs_labels = measure.label(score_map, background=0)
 	ids = np.unique(blobs_labels)
-	print('===========> rajat',score_map.shape)
+	#print('===========> rajat',score_map.shape)
 	#iterate through score maps and extract a contour
 	component_score_maps=[]
 	component_center_line= []
