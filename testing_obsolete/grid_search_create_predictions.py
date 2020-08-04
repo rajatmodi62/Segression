@@ -5,6 +5,7 @@ from util.grid_utils import convert_string_to_list,convert_list_to_string
 
 
 ############################### DEFAULT TESTING PARAMETERS##########################################################
+
 #NUM_WORKERS=3
 #INPUT_SIZE=512
 DATASET='TOTALTEXT'
@@ -23,6 +24,7 @@ scaling_factors= '0.25,0.50,0.75,1'
 #multiply height factor by width to get the height 
 height_factors=[0.3,0.6,0.9,1]
 # MODE='with_lstm'
+
 ################################### GPU COMMANDS #####################################################################
 
 #free the gpus 
@@ -53,13 +55,14 @@ def create_testing_command(params):
 from sklearn.model_selection import ParameterGrid
 
 param_grid = {
-            'segmentation_threshold': [i/100.0 for i in range(50,100,5)],\
-            'gaussian_threshold':[i/100.0 for i in range(60,100,5)],\
+            'segmentation_threshold': [i/100.0 for i in range(50,90,10)],\
+            'gaussian_threshold':[i/100.0 for i in range(60,80,5)],\
             'width':[i for i in range(512,512+1024,128)]
                 }
 
 grid= list(ParameterGrid(param_grid))
 progress_counter=0
+
 
 for grid_enumerator,params in enumerate(grid):
     #extract the parameters here 
