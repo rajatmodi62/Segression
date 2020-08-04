@@ -234,6 +234,7 @@ image_dir = os.path.join(dir_root, 'Images/Test')
 gt_dir =os.path.join(dir_root, 'gt/Test')
 dataset= load_dataset_images(image_dir)
 for i,image_file_name in enumerate(dataset):
+    print("image file name",image_file_name)
     filename = image_file_name.split(os.sep)[-1].split('.')[0]
     print("fffff",filename)
     ground_truth_annotation = parse_ground_truth(filename,\

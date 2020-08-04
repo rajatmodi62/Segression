@@ -142,6 +142,8 @@ def variance_filter(variance_map, max_value_index, mask, pred_center_line, mode=
 	for index in non_zero_index:
 		if mode=='average':
 			slice_value = variance_map[:,:,index[0],index[1]]*pred_center_line[:,:,index[0],index[1]]
+			#print("slice value",slice_value.shape,scaling_factor.shape)
+			#input('halt')
 			slice_value[:,0:2]=slice_value[:,0:2]*scaling_factor[:,:,index[0],index[1]]
 			slice_value=torch.sum(slice_value,dim=0)/add_center_line[:,index[0],index[1]]
 			filtered_variance_map[0,:,index[0],index[1]]= slice_value#variance_map[mask[index[0],index[1]],:,index[0],index[1]]
@@ -708,8 +710,9 @@ for i,batch in enumerate(test_loader):
 														filtered_center_line_list)
 
 	##print(" filtered contour shape",filtered_contour_list[0].shape)
-	#print(" meta",meta["image_id"])
+	print(" meta",meta["image_id"])
 
 	#create dataset eval
 	#print("calling evaluation code upon the dataset")
 	eval.generate_predictions(filtered_contour_list,meta["image_id"][0],filtered_center_line_list)
+	break

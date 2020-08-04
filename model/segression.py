@@ -209,12 +209,13 @@ class Segression(nn.Module):
         else:
             raise Exception("Model should be operated in train/test mode only")
 if __name__ == '__main__':
+    print("hare krishna")
     model=Segression(center_line_segmentation_threshold=0.999,\
                     backbone="VGG",\
                     segression_dimension= 3,\
                     n_classes=1,\
                     attention=False,\
                     ).to(device)
-    x= torch.randn(2,3,512,512).to(device)
-    segmentation_map=torch.randn(1,1,128,128).to(device)
+    x= torch.randn(2,3,512,256).to(device)
+    segmentation_map=torch.randn(1,1,128,64).to(device)
     gaussian_segmentation,center_line_segmentation, variance,meta= model(x,segmentation_map)

@@ -4,11 +4,13 @@ from PIL import Image
 import matplotlib.pyplot as plt
 import shutil as sh
 from pathlib import Path
+import json
 
 
 class EvalOutputs():
     def __init__(self,\
                 args= None,\
+                config_dict= None
                 ):
         super(EvalOutputs, self).__init__()
 
@@ -18,15 +20,27 @@ class EvalOutputs():
         #store dataset name
         self.dataset= args.dataset
         self.dataset_dir=(self.local_data_path/'results'/(self.dataset+\
-                            'gaussian_threshold='+str(args.gaussian_threshold)+\
-                            '_segmentation_threshold='+ str(args.segmentation_threshold)+\
-                            '_lstm_threshold='+ str(args.lstm_threshold)))
+                            '_gt='+str(args.gaussian_threshold)+\
+                            '_st='+ str(args.segmentation_threshold)+\
+                            '_h_max='+ str(config_dict['h_max'])+\
+                            '_w_max='+ str(config_dict['w_max'])+\
+                            ''))
+                            # '_lstm_threshold='+ str(args.lstm_threshold)))
         # #delete existing predictions
         if os.path.isdir(str(self.dataset_dir)):
             sh.rmtree(str(self.dataset_dir))
         #create dir containing the dataset
         (self.dataset_dir/'gaussian_maps').mkdir(exist_ok=True, parents=True)
         (self.dataset_dir/'center_line_maps').mkdir(exist_ok=True, parents=True)
+
+        
+        #create dir containing config file
+        (self.dataset_dir/'config').mkdir(exist_ok=True, parents=True)
+        config_dump_path= str(self.dataset_dir/'config'/'config.json')
+        
+        #dump the config file here 
+        with open(config_dump_path, 'w') as f:
+            json.dump(config_dict, f)
     '''
     Swap=False dump x, y predictions
     Swap= True dums y,x predictions
