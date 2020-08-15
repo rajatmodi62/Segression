@@ -50,7 +50,7 @@ class TestDataLoader(data.Dataset):
         self.means = (0.485, 0.456, 0.406)
         self.stds = (0.229, 0.224, 0.225)
         self.scales= scales
-
+        print("rajat path of testing images",self.test_img_path)
         print("total images in ",dataset, ":",len(self.test_img_path))
 
     def __len__(self):
@@ -93,7 +93,7 @@ if __name__ == '__main__':
         size=512, mean=means, std=stds
     )
     print("calling test dataloader")
-    testset= TestDataLoader(dataset='CTW1500',scales=scales)
+    testset= TestDataLoader(dataset='ICDAR2015',scales=scales)
     for i in range(len(testset)):
         testset[i]
         print(i)

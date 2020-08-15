@@ -94,7 +94,12 @@ multiscale :"+args.scaling_list+" \n\
 	for i,file_gt in enumerate(file_list_gt):
 		print('filename ', file_gt, i,len(file_list_gt))
 		#file_pred = os.path.join(pred_path,'res_'+file_gt.split(os.sep)[-1])
-		file_pred = os.path.join(pred_path,'res_'+file_gt.split('/')[-1].split('_')[-1])
+		#total-text
+		# file_pred = os.path.join(pred_path,'res_'+file_gt.split('/')[-1].split('_')[-1])
+		#icdar-2015
+		file_pred = os.path.join(pred_path,'res_'+file_gt.split('/')[-1][3:])
+		print("file pred",file_pred)
+
 		print("rajat",file_gt.split('/')[-1].split('_')[-1])
 		gt = create_dictionary_for_gt(file_gt, type='poly')
 		pred = create_dictionary_for_pred(file_pred,type='without_confidence')

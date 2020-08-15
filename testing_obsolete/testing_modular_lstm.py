@@ -28,14 +28,14 @@ from fil_finder import FilFinder2D
 import astropy.units as u 
 
 
-###############################################################################
+################################################################################################################################################################################
+
 parser = argparse.ArgumentParser(description="Welcome to the Segression Testing Module!!!")
 
 parser.add_argument("--dataset", type=str, default="TOTALTEXT",
 					help="Dataset on which testing is to be done, (TOTALTEXT,CTW1500,MSRATD500,ICDAR2015)")
 parser.add_argument("--test-dir", type=str, default="",
-					help="Directory upto test folder for the dataset")
-			
+					help="Directory upto test folder for the dataset")			
 parser.add_argument("--snapshot-dir", type=str, default="snapshots/SynthText_3d_rotated_gaussian_without_attention_200000.pth",
 					help="Path to the Segression snapshot to be used for testing")
 parser.add_argument("--lstm-snapshot-dir", type=str, default="snapshots/LSTM_batch_size_8lr_0.0001n_steps_100000dataset_TOTALTEXTbackbone_VGG/TOTALTEXT_LSTM_checkpoint22000.pth",
@@ -52,10 +52,12 @@ parser.add_argument("--out-channels", type=int, default=32,
 						help="Save summaries and checkpoint every often.")
 parser.add_argument("--n-classes", type=int, default=1,
 						help="number of classes in segmentation head.")
-
 parser.add_argument("--mode", type=str, default="",
 					help="Enter training with/without lstm")
 args = parser.parse_args()
+
+################################################################################################################################################################################
+
 
 #print("All requisite testing modules loaded")
 

@@ -122,23 +122,22 @@ class TestDataLoader():
 				scaled_images.append(transform(image)[0])
 				scales.append((h,w))
 		if hardcode==True:
-			for scale in hardcoded_scales:
+			for (h,w) in hardcoded_scales:
 				
-				# h,w = self.get_compatible_scaling_factor( int(h_max*scaling_factor),\
-				# 									int(w_max*scaling_factor)
-				# 									)
+				h,w = self.get_compatible_scaling_factor(h,w)
 				# scaled_image= cv2.resize(image,\
 				# 					(scale,scale), \
 				# 					interpolation=cv2.INTER_LINEAR)
-							
+
+				print("h in hardocde true",h,"w true",w)			
 				#intialize transform 
 				transform = BaseTransform(
-										size=(scale,scale), mean=self.means, std=self.stds
+										size=(h,w), mean=self.means, std=self.stds
 										)
 				#print("applying transform")
 				# print("type",type(transform(scaled_image)),len(transform(scaled_image)))
 				scaled_images.append(transform(image)[0])
-				scales.append((scale,scale))
+				scales.append((h,w))
 		#print(scales)
 
 		meta = {

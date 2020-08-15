@@ -14,7 +14,10 @@ import sys
 import os
 import os.path as osp
 import pickle
+import matplotlib
+matplotlib.use('Agg')
 import matplotlib.pyplot as plt
+
 import random
 import timeit
 #from skeletonize import skeletonize_image
@@ -343,7 +346,7 @@ def main():
 
         image, ground_truth,center_line_map,train_mask, tr_mask, tcl_mask, radius_map, sin_map, cos_map=batch
         if i_iter == 0 or i_iter==iteration_to_start_from:
-            batch, max_value= find_max_batch_size_tensor(attempt = 500,max_allowed=7000)
+            batch, max_value= find_max_batch_size_tensor(attempt = 500,max_allowed=12000)
             image, ground_truth,center_line_map,train_mask, tr_mask, tcl_mask, radius_map, sin_map, cos_map=batch
 
         if torch.sum(center_line_map[1])>max_value:

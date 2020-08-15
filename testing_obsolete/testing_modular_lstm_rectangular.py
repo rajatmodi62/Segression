@@ -94,7 +94,7 @@ os.system("nvidia-smi | grep 'python' | awk '{ #print $3 }' | xargs -n1 kill -9"
 #scaling_factor= np.max(np.asarray(scales))/scales
 #testing inputs
 #initialize scaling factors 
-# scaling_factors= [0.25,0.6,0.9,1]
+scaling_factors= [0.25,0.6,0.9,1]
 
 # h_max=768
 # w_max=1024
@@ -103,19 +103,20 @@ os.system("nvidia-smi | grep 'python' | awk '{ #print $3 }' | xargs -n1 kill -9"
 #extracting arguments from argparser 
 h_max= args.h_max
 w_max= args.w_max
-scaling_factors= convert_string_to_list(args.scaling_factors)
+# scaling_factors= convert_string_to_list(args.scaling_factors)
 
 #harcode 
-# hardcode= True
+hardcode= True
 # hardcoded_scales=[512,512+128,512+2*128,1024, 1024+256, 1024+512] 
-
+rectangle= (900,1600)
+hardcoded_scales= [rectangle,rectangle]
 #extracting arguments from argparser
-hardcode= args.hardcode
+# hardcode= args.hardcode
 
-if args.hardcode:
-	hardcoded_scales= convert_string_to_list(args.hardcoded_scales)
-else:
-	hardcoded_scales=[]
+# if args.hardcode:
+# 	hardcoded_scales= convert_string_to_list(args.hardcoded_scales)
+# else:
+# 	hardcoded_scales=[]
 print("scaling_factors are",scaling_factors)
 # scaling_factors= [0.25,0.50,0.75,1]
 config_dict= create_config_dict(dataset=args.dataset,\
