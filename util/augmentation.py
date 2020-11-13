@@ -412,10 +412,10 @@ class Augmentation(object):
 		self.augmentation = Compose([
 			# Resize(size),
 			Padding(),
-			#RandomResizedLimitCrop((size=size, scale=(0.24, 1.69), ratio=(0.33, 3))),
-			RandomResizedLimitCrop(size=size, scale=(0.3, 0.5), ratio=(0.33, 3)),
-			# RandomBrightness(),
-			# RandomContrast(),
+			RandomResizedLimitCrop(size=size, scale=(0.24, 1.69), ratio=(0.33, 3.0)),
+			# RandomResizedLimitCrop(size=size, scale=(0.3, 0.5), ratio=(0.33, 3)),
+			RandomBrightness(),
+			RandomContrast(),
 			RandomMirror(),
 			Rotate(),
 			Normalize(mean, std)

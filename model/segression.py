@@ -35,7 +35,7 @@ class Segression(nn.Module):
 
     def __init__(self,\
                  in_channels=3,\
-                 out_channels=32,\
+                 out_channels=64,\
                  backbone='VGG',\
                  segression_dimension= 3,\
                  n_classes=1,\
@@ -89,7 +89,8 @@ class Segression(nn.Module):
         ########################################################################
         #initialize segmentation_head
         #Note: in_channel=out_channel since it's plugged in front of backbone.
-        self.segmentation_head_1= SegmentationHead(in_channels= out_channels+2, n_classes= self.n_classes)
+        self.segmentation_head= SegmentationHead(in_channels= out_channels, n_classes= self.n_classes)
+        # self.segmentation_head_1= SegmentationHead(in_channels= out_channels+2, n_classes= self.n_classes)
         ########################################################################
 
 
@@ -147,28 +148,30 @@ class Segression(nn.Module):
         ########################################################################
 
         #make a pass through backbone
-        x,low_res_feature= self.backbone(x)
-        backbone_feature= x
+        # print("input x",x.shape)
+        x= self.backbone(x)
+        # print("shape of x",x.shape)
         #compute variance map
         variance= self.variance_conv(x)
 
         #attention based module
         ########################################################################
-        if self.attention:
-            variance_x= F.relu(variance[:,0,:,:])+1
-            variance_y= F.relu(variance[ :,1,:,:])+1
-            sum = variance_x+ variance_y
-            # print('max value ', torch.max(sum))
-            variance_attention= torch.gt(sum,self.attention_threshold)*1.0
-            # print(torch.unique(variance_attention))
-            #variance_attention = variance_attention.unsqueeze(1).repeat(1,x.shape[1],1,1)
-            x= x*variance_attention.unsqueeze(1)
-        x = torch.cat([F.relu(variance[:,0:2,...])+1, x], dim=1)
+        # if self.attention:
+        #     variance_x= F.relu(variance[:,0,:,:])+1
+        #     variance_y= F.relu(variance[ :,1,:,:])+1
+        #     sum = variance_x+ variance_y
+        #     # print('max value ', torch.max(sum))
+        #     variance_attention= torch.gt(sum,self.attention_threshold)*1.0
+        #     # print(torch.unique(variance_attention))
+        #     #variance_attention = variance_attention.unsqueeze(1).repeat(1,x.shape[1],1,1)
+        #     x= x*variance_attention.unsqueeze(1)
+        # x = torch.cat([F.relu(variance[:,0:2,...])+1, x], dim=1)
 
         ########################################################################
+        center_line_segmentation= self.segmentation_head(x)
 
         #compute center line segmentation
-        center_line_segmentation= self.segmentation_head_1(x,low_res_feature)
+        # center_line_segmentation= self.segmentation_head_1(x,low_res_feature)
 
 
 

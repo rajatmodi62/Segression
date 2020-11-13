@@ -102,16 +102,40 @@ class VGGDecoder(nn.Module):
 		self.bn4 = nn.BatchNorm2d(64)
 		self.relu4 = nn.ReLU()
 
-		self.conv5 = nn.Conv2d(192, out_channels, 1)
-		self.bn5 = nn.BatchNorm2d(out_channels)
+		self.conv5 = nn.Conv2d(192, 32, 1)
+		self.bn5 = nn.BatchNorm2d(32)
 		self.relu5 = nn.ReLU()
-		self.conv6 = nn.Conv2d(out_channels, out_channels, 3, padding=1)
-		self.bn6 = nn.BatchNorm2d(out_channels)
+		self.conv6 = nn.Conv2d(32, 32, 3, padding=1)
+		self.bn6 = nn.BatchNorm2d(32)
 		self.relu6 = nn.ReLU()
 
-		self.conv7 = nn.Conv2d(out_channels, out_channels, 3, padding=1)
-		self.bn7 = nn.BatchNorm2d(out_channels)
-		self.relu7 = nn.ReLU()
+		#self.conv7 = nn.Conv2d(out_channels, out_channels, 3, padding=1)
+		#self.bn7 = nn.BatchNorm2d(out_channels)
+		#self.relu7 = nn.ReLU()
+
+		############# featuer fusion ###################
+		self.conv_f1 = nn.Conv2d(128, 32,  3, padding=1)
+		self.bn_f1 = nn.BatchNorm2d(32)
+		self.relu_f1 = nn.ReLU()
+
+
+		self.conv_f2 = nn.Conv2d(64, 32,  3, padding=1)
+		self.bn_f2 = nn.BatchNorm2d(32)
+		self.relu_f2 = nn.ReLU()
+
+
+		self.conv_f3 = nn.Conv2d(32, 32,  3, padding=1)
+		self.bn_f3 = nn.BatchNorm2d(32)
+		self.relu_f3 = nn.ReLU()
+
+
+		self.conv_f = nn.Conv2d(32*3, out_channels, 1)
+		self.bn_f = nn.BatchNorm2d(out_channels)
+		self.relu_f = nn.ReLU()
+
+
+		#####################################################
+
 
 		for m in self.modules():
 			if isinstance(m, nn.Conv2d):
@@ -123,6 +147,39 @@ class VGGDecoder(nn.Module):
 				nn.init.constant_(m.bias, 0)
 
 	def forward(self, x):
+
+		################################################################
+		
+		y = F.interpolate(x[3], scale_factor=2, mode='bilinear', align_corners=True)
+		y = torch.cat((y, x[2]), 1)
+		y = self.relu1(self.bn1(self.conv1(y)))
+		y1 = self.relu2(self.bn2(self.conv2(y)))
+
+		y2 = F.interpolate(y1, scale_factor=2, mode='bilinear', align_corners=True)
+		y2 = torch.cat((y2, x[1]), 1)
+		y2 = self.relu3(self.bn3(self.conv3(y2)))
+		y2 = self.relu4(self.bn4(self.conv4(y2)))
+
+		y3 = F.interpolate(y2, scale_factor=2, mode='bilinear', align_corners=True)
+		y3 = torch.cat((y3, x[0]), 1)
+		y3 = self.relu5(self.bn5(self.conv5(y3)))
+		y3 = self.relu6(self.bn6(self.conv6(y3)))
+
+		#y3 = self.relu7(self.bn7(self.conv7(y3)))
+
+		#################### multi scale feature fusion #########################
+		# print(y1.shape, y2.shape, y3.shape)
+		y_f1 = self.relu_f1(self.bn_f1(self.conv_f1(y1)))
+		y_f2 = self.relu_f2(self.bn_f2(self.conv_f2(y2)))
+		y_f3 = self.relu_f3(self.bn_f3(self.conv_f3(y3)))
+
+		y_f1 = F.interpolate(y_f1, scale_factor=4, mode='bilinear', align_corners=True)
+		y_f2 = F.interpolate(y_f2, scale_factor=2, mode='bilinear', align_corners=True)
+		
+		y_f = torch.cat((y3,y_f1,y_f2),1)
+		y_f = self.relu_f(self.bn_f(self.conv_f(y_f)))
+
+		'''
 		y = F.interpolate(x[3], scale_factor=2, mode='bilinear', align_corners=True)
 		y = torch.cat((y, x[2]), 1)
 		y = self.relu1(self.bn1(self.conv1(y)))
@@ -139,7 +196,8 @@ class VGGDecoder(nn.Module):
 		y = self.relu6(self.bn6(self.conv6(y)))
 
 		y = self.relu7(self.bn7(self.conv7(y)))
-		return y
+		'''
+		return y_f
 
 '''
 VGGWrapper
@@ -162,9 +220,9 @@ class VGGWrapper(nn.Module):
          #        "Initialized in_channel & Input Tensor's in_channel must be same"
          x= self.encoder(x)
          #print(x[0].size(),x[3].size(),"hello")
-         low_res_feature= x[-1]
+        #  low_res_feature= x[-1]
          x= self.decoder(x)
-         return x,low_res_feature
+         return x#,low_res_feature
 
 if __name__ == '__main__':
         print("main")

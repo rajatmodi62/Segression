@@ -80,7 +80,7 @@ def get_arguments():
                         help="Enter the Backbone of the model BACKBONE/RESNEST")
     parser.add_argument("--train-category", type=str, default="attention",
                         help="train with attention mechanism : 'attention', 'without_attention' ")
-    parser.add_argument("--out-channels", type=int, default=32,
+    parser.add_argument("--out-channels", type=int, default=64,
                         help="Save summaries and checkpoint every often.")
     return parser.parse_args()
 
@@ -228,8 +228,10 @@ def load_model(args,device=torch.device("cuda:0" if torch.cuda.is_available() el
                     n_classes=3,\
                     attention=False,\
                     out_channels=args.out_channels).to(device)
+    print("checkpoint path",args.checkpoint,args.dataset)
+    
     if args.checkpoint!="":
-        model.load_state_dict(torch.load(args.checkpoint,map_location=device),strict=False)
+        model.load_state_dict(torch.load(args.checkpoint,map_location=device),strict=True)
         print("loaded checkpoint at ",args.checkpoint)
     return model
 
@@ -346,7 +348,7 @@ def main():
 
         image, ground_truth,center_line_map,train_mask, tr_mask, tcl_mask, radius_map, sin_map, cos_map=batch
         if i_iter == 0 or i_iter==iteration_to_start_from:
-            batch, max_value= find_max_batch_size_tensor(attempt = 500,max_allowed=12000)
+            batch, max_value= find_max_batch_size_tensor(attempt = 50,max_allowed=12000)
             image, ground_truth,center_line_map,train_mask, tr_mask, tcl_mask, radius_map, sin_map, cos_map=batch
 
         if torch.sum(center_line_map[1])>max_value:
@@ -381,7 +383,7 @@ def main():
 
         #model.switch_gaussian_label_map(center_line_map)
         center_line_map, indices, flag = check_boundary_condition_and_modify(center_line_map)
-        if max_value<torch.sum(center_line_map):
+        if max_value<torch.sum(center_line_map).cpu():
             max_value = torch.sum(center_line_map)
         #max_value=torch.max(max_value, torch.sum(center_line_map))
         #print('number of pixels', max_value,torch.sum(center_line_map))

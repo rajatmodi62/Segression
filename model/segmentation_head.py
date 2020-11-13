@@ -3,12 +3,12 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 #To Do: Implement ASPP code later.
+
 '''
 SegmentationHead
 Function: Performs segmentation on input feature map.
-
 '''
-
+'''
 class ASPP(nn.Module):
     def __init__(self, in_channel=512, depth=256):
         super(ASPP,self).__init__()
@@ -41,33 +41,33 @@ class ASPP(nn.Module):
         net = self.conv_1x1_output(torch.cat([image_features, atrous_block1, atrous_block6,
                                               atrous_block12, atrous_block18], dim=1))
         return net
-
+'''
 class SegmentationHead(nn.Module):
     def __init__(self,\
-            in_channels=32+2,\
-             n_classes=1,\
-             aspp_in_channels= 512):
+            in_channels=64,\
+             n_classes=1):
 
         super(SegmentationHead, self).__init__()
         #convolution for segmentation.
         self.n_classes = n_classes
-        self.conv1= nn.Conv2d(in_channels+(aspp_in_channels//2),in_channels, 3, padding=1)
-        self.bn1 = nn.BatchNorm2d(in_channels)
-        self.conv2= nn.Conv2d(in_channels,n_classes, 1)
-        self.aspp = ASPP(aspp_in_channels, depth=aspp_in_channels//2)
+        # self.conv1= nn.Conv2d(in_channels+(aspp_in_channels//2),in_channels, 3, padding=1)
+        # self.bn1 = nn.BatchNorm2d(in_channels)
+        self.conv1= nn.Conv2d(in_channels,n_classes, 1)
+        #self.aspp = ASPP(aspp_in_channels, depth=aspp_in_channels//2)
 
-    def forward(self, x,low_res_feature):
+    def forward(self, x):
         #print('helloxyz',x.shape)
         #print("rajat")
-        size = x.shape[2:]
+        # size = x.shape[2:]
         #print("low res features size",low_res_feature.size())
-        aspp_output = self.aspp(low_res_feature)
-        aspp_output = F.upsample(aspp_output, size=size, mode='bilinear')
+        # aspp_output = self.aspp(low_res_feature)
+        # aspp_output = F.upsample(aspp_output, size=size, mode='bilinear')
         #print("")
-        x= torch.cat([x,aspp_output], dim=1)
+        # x= torch.cat([x,aspp_output], dim=1)
+        # x= self.conv1(x)
+        # x= F.relu(self.bn1(x))
         x= self.conv1(x)
-        x= F.relu(self.bn1(x))
-        x= self.conv2(x)
+        # x= F.sigmoid(x)
         #print("fata")
         if self.n_classes>1:
             pass;
@@ -80,7 +80,7 @@ class SegmentationHead(nn.Module):
 if __name__ == '__main__':
      print("main")
      seg= SegmentationHead()
-     x= torch.randn(2,32,256,512)
+     x= torch.randn(2,64,256,512)
      output=seg(x)
      #print("len of output",len(output))
      print("done",output.shape)
