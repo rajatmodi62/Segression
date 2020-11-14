@@ -207,7 +207,7 @@ class Segression(nn.Module):
         elif self.mode== 'test':
             #dont return gaussian map since it is explicitly drawn in the training code
             #print("performing testing")
-            return center_line_segmentation,variance,backbone_feature
+            return center_line_segmentation,variance,None
 
         else:
             raise Exception("Model should be operated in train/test mode only")

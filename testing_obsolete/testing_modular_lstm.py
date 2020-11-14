@@ -48,7 +48,7 @@ parser.add_argument("--lstm_threshold", type=float, default=0.8,
 						help="Enter lstm threshold")
 parser.add_argument("--backbone", type=str, default="VGG",
 					help="Enter the Backbone of the model, (VGG,RESNEST,DB)")
-parser.add_argument("--out-channels", type=int, default=32,
+parser.add_argument("--out-channels", type=int, default=64,
 						help="Save summaries and checkpoint every often.")
 parser.add_argument("--n-classes", type=int, default=1,
 						help="number of classes in segmentation head.")
@@ -64,7 +64,7 @@ args = parser.parse_args()
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
 #free the gpus
-os.system("nvidia-smi | grep 'python' | awk '{ #print $3 }' | xargs -n1 kill -9")
+# os.system("nvidia-smi | grep 'python' | awk '{ #print $3 }' | xargs -n1 kill -9")
 
 #enter scales in a sorted increasing order
 scales= [512,512+128,512+2*128,1024, 1024+256, 1024+512] # best
@@ -717,4 +717,4 @@ for i,batch in enumerate(test_loader):
 	#create dataset eval
 	#print("calling evaluation code upon the dataset")
 	eval.generate_predictions(filtered_contour_list,meta["image_id"][0],filtered_center_line_list)
-	break
+	

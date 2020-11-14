@@ -348,7 +348,7 @@ def main():
 
         image, ground_truth,center_line_map,train_mask, tr_mask, tcl_mask, radius_map, sin_map, cos_map=batch
         if i_iter == 0 or i_iter==iteration_to_start_from:
-            batch, max_value= find_max_batch_size_tensor(attempt = 50,max_allowed=12000)
+            batch, max_value= find_max_batch_size_tensor(attempt = 500,max_allowed=12000)
             image, ground_truth,center_line_map,train_mask, tr_mask, tcl_mask, radius_map, sin_map, cos_map=batch
 
         if torch.sum(center_line_map[1])>max_value:
@@ -530,7 +530,7 @@ def main():
             plt.savefig('visual.png')
             plt.close()
 
-        if i_iter%10==0 :
+        if i_iter%100==0 :
             print('exp = {}'.format(args.snapshot_dir))
             import gc
             len=0

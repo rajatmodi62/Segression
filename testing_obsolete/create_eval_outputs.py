@@ -19,13 +19,19 @@ class EvalOutputs():
 
         #store dataset name
         self.dataset= args.dataset
-        self.dataset_dir=(self.local_data_path/'results'/(self.dataset+\
-                            '_gt='+str(args.gaussian_threshold)+\
-                            '_st='+ str(args.segmentation_threshold)+\
-                            '_h_max='+ str(config_dict['h_max'])+\
-                            '_w_max='+ str(config_dict['w_max'])+\
-                            ''))
-                            # '_lstm_threshold='+ str(args.lstm_threshold)))
+        if config_dict is not None:
+            self.dataset_dir=(self.local_data_path/'results'/(self.dataset+\
+                                '_gt='+str(args.gaussian_threshold)+\
+                                '_st='+ str(args.segmentation_threshold)+\
+                                '_h_max='+ str(config_dict['h_max'])+\
+                                '_w_max='+ str(config_dict['w_max'])+\
+                                ''))
+        else:
+            self.dataset_dir=(self.local_data_path/'results'/(self.dataset+\
+                                '_gt='+str(args.gaussian_threshold)+\
+                                '_st='+ str(args.segmentation_threshold)+\
+                                 ''))
+                                # '_lstm_threshold='+ str(args.lstm_threshold)))
         # #delete existing predictions
         if os.path.isdir(str(self.dataset_dir)):
             sh.rmtree(str(self.dataset_dir))
